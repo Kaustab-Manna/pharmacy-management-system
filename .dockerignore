@@ -1,0 +1,12 @@
+.git
+.github
+.env
+database/pharmacy.sqlite
+database/pharmacy.sqlite-shm
+database/pharmacy.sqlite-wal
+writable/cache/*
+writable/logs/*
+writable/session/*
+run-local.bat
+test_*.php
+test_cookie.txt

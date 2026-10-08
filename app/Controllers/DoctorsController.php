@@ -1,0 +1,55 @@
+<?php
+namespace App\Controllers;
+
+use App\Core\Controller;
+use App\Core\Database;
+use App\Config\App;
+
+class DoctorsController extends Controller
+{
+    public function index(): void
+    {
+        $this->requireAuth();
+
+        $doctors = Database::raw("SELECT d.*, 
+                                 (SELECT COUNT(*) FROM prescriptions WHERE doctor_id = d.id) as total_prescriptions,
+                                 (SELECT COUNT(*) FROM sales WHERE doctor_id = d.id) as total_sales_referred
+                                 FROM doctors d
+                                 ORDER BY d.name ASC");
+
+        $this->render('doctors.index', [
+            'pageTitle'    => 'Doctor Management & Prescriber Directory (Module 10) - INFOSOF',
+            'activeModule' => 'doctors',
+            'doctors'      => $doctors
+        ]);
+    }
+
+    public function create(): void
+    {
+        $this->checkPermission('doctors', 'create');
+
+        if ($this->request->isPost()) {
+            $name = trim($this->request->post('name'));
+            $regNo = trim($this->request->post('registration_number'));
+            $spec = trim($this->request->post('specialization', 'General Physician'));
+            $hospital = trim($this->request->post('hospital_clinic', ''));
+            $phone = trim($this->request->post('phone', ''));
+            $email = trim($this->request->post('email', ''));
+            $address = trim($this->request->post('address', ''));
+
+            $id = Database::table('doctors')->insert([
+                'name'                => $name,
+                'registration_number' => $regNo,
+                'specialization'      => $spec,
+                'hospital_clinic'     => $hospital,
+                'phone'               => $phone,
+                'email'               => $email,
+                'address'             => $address,
+                'created_at'          => date('Y-m-d H:i:s')
+            ]);
+
+            $this->logAudit('create_doctor', 'doctors', $id, "Added doctor {$name}");
+            $this->redirect(App::baseURL() . '/doctors', 'success', "Doctor '{$name}' added to directory.");
+        }
+    }
+}

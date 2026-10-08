@@ -1,0 +1,31 @@
+# ==============================================================================
+# INFOSOF TECHNOLOGIES - Pharmacy Management Software
+# Render Blueprint Specification (render.yaml)
+# ==============================================================================
+
+services:
+  - type: web
+    name: infosof-pharmacy
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /login
+    envVars:
+      - key: APP_NAME
+        value: "INFOSOF Pharmacy Management"
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: DB_DRIVER
+        value: sqlite
+      - key: SESSION_LIFETIME
+        value: "7200"
+      # To connect external or Render MySQL:
+      # - key: DB_DRIVER
+      #   value: mysql
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: pharmacy-mysql
+      #     property: connectionString

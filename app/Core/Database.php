@@ -1,0 +1,382 @@
+<?php
+namespace App\Core;
+
+use App\Config\Database as DbConfig;
+use PDO;
+use PDOException;
+
+class Database
+{
+    private static ?PDO $instance = null;
+    private static string $activeDriver = 'mysql';
+
+    public static function getConnection(): PDO
+    {
+        if (self::$instance !== null) {
+            return self::$instance;
+        }
+
+        $config = DbConfig::getConfig();
+        $connected = false;
+
+        // Try MySQL first if configured
+        if ($config['driver'] === 'mysql' && !empty($config['host'])) {
+            try {
+                $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']};charset={$config['charset']}";
+                $pdo = new PDO($dsn, $config['user'], $config['password'], [
+                    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES   => false,
+                    PDO::ATTR_TIMEOUT            => 2,
+                ]);
+                self::$instance = $pdo;
+                self::$activeDriver = 'mysql';
+                $connected = true;
+            } catch (PDOException $e) {
+                // If database doesn't exist, try connecting to MySQL server to create it
+                if ($e->getCode() == 1049) {
+                    try {
+                        $rootDsn = "mysql:host={$config['host']};port={$config['port']};charset={$config['charset']}";
+                        $rootPdo = new PDO($rootDsn, $config['user'], $config['password'], [
+                            PDO::ATTR_TIMEOUT => 2,
+                        ]);
+                        $rootPdo->exec("CREATE DATABASE IF NOT EXISTS `{$config['database']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                        
+                        $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']};charset={$config['charset']}";
+                        self::$instance = new PDO($dsn, $config['user'], $config['password'], [
+                            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                        ]);
+                        self::$activeDriver = 'mysql';
+                        $connected = true;
+                    } catch (PDOException $e2) {
+                        // MySQL server failed
+                    }
+                }
+            }
+        }
+
+        // If MySQL not connected (e.g. local environment without running MySQL daemon), use SQLite fallback
+        if (!$connected) {
+            $sqlitePath = $config['sqlite_path'];
+            $dir = dirname($sqlitePath);
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0777, true);
+            }
+            $pdo = new PDO("sqlite:{$sqlitePath}", null, null, [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            ]);
+            $pdo->exec("PRAGMA foreign_keys = ON;");
+            self::$instance = $pdo;
+            self::$activeDriver = 'sqlite';
+        }
+
+        // Auto-initialize schema & seed data if tables do not exist
+        self::ensureSchemaInitialized(self::$instance, self::$activeDriver);
+
+        return self::$instance;
+    }
+
+    public static function getActiveDriver(): string
+    {
+        if (self::$instance === null) {
+            self::getConnection();
+        }
+        return self::$activeDriver;
+    }
+
+    private static function ensureSchemaInitialized(PDO $pdo, string $driver): void
+    {
+        $hasTables = false;
+        try {
+            if ($driver === 'mysql') {
+                $stmt = $pdo->query("SHOW TABLES LIKE 'users'");
+                $hasTables = ($stmt && $stmt->rowCount() > 0);
+            } else {
+                $stmt = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='users'");
+                $hasTables = ($stmt && $stmt->fetchColumn() !== false);
+            }
+        } catch (\Exception $e) {
+            $hasTables = false;
+        }
+
+        if (!$hasTables) {
+            $baseDir = dirname(__DIR__, 2);
+            $schemaFile = $driver === 'sqlite'
+                ? $baseDir . '/database/sqlite_schema.sql'
+                : $baseDir . '/database/schema.sql';
+            $seedFile = $driver === 'sqlite'
+                ? $baseDir . '/database/sqlite_seed.sql'
+                : $baseDir . '/database/seed_data.sql';
+
+            if (file_exists($schemaFile)) {
+                $sql = file_get_contents($schemaFile);
+                try {
+                    $pdo->exec($sql);
+                } catch (\Exception $e) {
+                    error_log("Schema initialization notice: " . $e->getMessage());
+                }
+            }
+
+            if (file_exists($seedFile)) {
+                $seedSql = file_get_contents($seedFile);
+                try {
+                    $pdo->exec($seedSql);
+                } catch (\Exception $e) {
+                    error_log("Seed data initialization notice: " . $e->getMessage());
+                }
+            }
+        }
+    }
+
+    public static function table(string $table): QueryBuilder
+    {
+        return new QueryBuilder(self::getConnection(), $table);
+    }
+
+    public static function raw(string $sql, array $params = []): array
+    {
+        $stmt = self::getConnection()->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function execute(string $sql, array $params = []): bool
+    {
+        $stmt = self::getConnection()->prepare($sql);
+        return $stmt->execute($params);
+    }
+}
+
+class QueryBuilder
+{
+    private PDO $pdo;
+    private string $table;
+    private array $select = ['*'];
+    private array $wheres = [];
+    private array $params = [];
+    private array $joins = [];
+    private array $orderBys = [];
+    private ?int $limitCount = null;
+    private ?int $offsetCount = null;
+
+    public function __construct(PDO $pdo, string $table)
+    {
+        $this->pdo = $pdo;
+        $this->table = $table;
+    }
+
+    public function select(string ...$columns): self
+    {
+        $this->select = $columns;
+        return $this;
+    }
+
+    public function where(string $column, mixed $operatorOrValue, mixed $value = null): self
+    {
+        if ($value === null) {
+            $op = '=';
+            $val = $operatorOrValue;
+        } else {
+            $op = $operatorOrValue;
+            $val = $value;
+        }
+
+        $paramKey = ':w_' . count($this->params) . '_' . preg_replace('/[^a-zA-Z0-9_]/', '', $column);
+        $this->wheres[] = "{$column} {$op} {$paramKey}";
+        $this->params[$paramKey] = $val;
+
+        return $this;
+    }
+
+    public function whereRaw(string $sql, array $params = []): self
+    {
+        $this->wheres[] = $sql;
+        foreach ($params as $k => $v) {
+            $this->params[$k] = $v;
+        }
+        return $this;
+    }
+
+    public function orWhere(string $column, mixed $operatorOrValue, mixed $value = null): self
+    {
+        if ($value === null) {
+            $op = '=';
+            $val = $operatorOrValue;
+        } else {
+            $op = $operatorOrValue;
+            $val = $value;
+        }
+
+        $paramKey = ':w_' . count($this->params) . '_' . preg_replace('/[^a-zA-Z0-9_]/', '', $column);
+        if (empty($this->wheres)) {
+            $this->wheres[] = "{$column} {$op} {$paramKey}";
+        } else {
+            $last = array_pop($this->wheres);
+            $this->wheres[] = "({$last} OR {$column} {$op} {$paramKey})";
+        }
+        $this->params[$paramKey] = $val;
+
+        return $this;
+    }
+
+    public function whereIn(string $column, array $values): self
+    {
+        if (empty($values)) {
+            $this->wheres[] = "1 = 0";
+            return $this;
+        }
+        $placeholders = [];
+        foreach ($values as $i => $val) {
+            $key = ':win_' . count($this->params) . '_' . $i;
+            $placeholders[] = $key;
+            $this->params[$key] = $val;
+        }
+        $this->wheres[] = "{$column} IN (" . implode(', ', $placeholders) . ")";
+        return $this;
+    }
+
+    public function whereNull(string $column): self
+    {
+        $this->wheres[] = "{$column} IS NULL";
+        return $this;
+    }
+
+    public function whereNotNull(string $column): self
+    {
+        $this->wheres[] = "{$column} IS NOT NULL";
+        return $this;
+    }
+
+    public function join(string $table, string $first, string $operator, string $second, string $type = 'INNER'): self
+    {
+        $this->joins[] = "{$type} JOIN {$table} ON {$first} {$operator} {$second}";
+        return $this;
+    }
+
+    public function orderBy(string $column, string $direction = 'ASC'): self
+    {
+        $this->orderBys[] = "{$column} " . strtoupper($direction);
+        return $this;
+    }
+
+    public function limit(int $limit, ?int $offset = null): self
+    {
+        $this->limitCount = $limit;
+        if ($offset !== null) {
+            $this->offsetCount = $offset;
+        }
+        return $this;
+    }
+
+    public function get(): array
+    {
+        $sql = "SELECT " . implode(', ', $this->select) . " FROM {$this->table}";
+
+        if (!empty($this->joins)) {
+            $sql .= " " . implode(' ', $this->joins);
+        }
+
+        if (!empty($this->wheres)) {
+            $sql .= " WHERE " . implode(' AND ', $this->wheres);
+        }
+
+        if (!empty($this->orderBys)) {
+            $sql .= " ORDER BY " . implode(', ', $this->orderBys);
+        }
+
+        if ($this->limitCount !== null) {
+            $sql .= " LIMIT {$this->limitCount}";
+            if ($this->offsetCount !== null) {
+                $sql .= " OFFSET {$this->offsetCount}";
+            }
+        }
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($this->params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function first(): ?array
+    {
+        $this->limit(1);
+        $results = $this->get();
+        return $results[0] ?? null;
+    }
+
+    public function count(): int
+    {
+        $sql = "SELECT COUNT(*) as cnt FROM {$this->table}";
+        if (!empty($this->joins)) {
+            $sql .= " " . implode(' ', $this->joins);
+        }
+        if (!empty($this->wheres)) {
+            $sql .= " WHERE " . implode(' AND ', $this->wheres);
+        }
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($this->params);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int)($row['cnt'] ?? 0);
+    }
+
+    public function sum(string $column): float
+    {
+        $sql = "SELECT SUM({$column}) as total FROM {$this->table}";
+        if (!empty($this->wheres)) {
+            $sql .= " WHERE " . implode(' AND ', $this->wheres);
+        }
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($this->params);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (float)($row['total'] ?? 0.00);
+    }
+
+    public function insert(array $data): int
+    {
+        $columns = array_keys($data);
+        $placeholders = array_map(fn($col) => ':' . $col, $columns);
+
+        $sql = "INSERT INTO {$this->table} (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+        $stmt = $this->pdo->prepare($sql);
+
+        $binds = [];
+        foreach ($data as $col => $val) {
+            $binds[':' . $col] = $val;
+        }
+        $stmt->execute($binds);
+
+        return (int)$this->pdo->lastInsertId();
+    }
+
+    public function update(array $data): bool
+    {
+        $sets = [];
+        $binds = $this->params;
+
+        foreach ($data as $col => $val) {
+            $paramKey = ':set_' . preg_replace('/[^a-zA-Z0-9_]/', '', $col);
+            $sets[] = "{$col} = {$paramKey}";
+            $binds[$paramKey] = $val;
+        }
+
+        $sql = "UPDATE {$this->table} SET " . implode(', ', $sets);
+        if (!empty($this->wheres)) {
+            $sql .= " WHERE " . implode(' AND ', $this->wheres);
+        }
+
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute($binds);
+    }
+
+    public function delete(): bool
+    {
+        $sql = "DELETE FROM {$this->table}";
+        if (!empty($this->wheres)) {
+            $sql .= " WHERE " . implode(' AND ', $this->wheres);
+        }
+
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute($this->params);
+    }
+}

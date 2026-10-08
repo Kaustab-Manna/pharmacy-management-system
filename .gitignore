@@ -1,0 +1,14 @@
+.env
+database/pharmacy.sqlite
+database/pharmacy.sqlite-shm
+database/pharmacy.sqlite-wal
+writable/cache/*
+writable/logs/*
+writable/session/*
+!writable/cache/.gitkeep
+!writable/logs/.gitkeep
+!writable/session/.gitkeep
+test_*.php
+test_cookie.txt
+c.txt
+tcookie.txt
