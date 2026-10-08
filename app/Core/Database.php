@@ -19,44 +19,73 @@ class Database
         $config = DbConfig::getConfig();
         $connected = false;
 
-        // Try MySQL first if configured
+        // Try MySQL/TiDB first if configured
         if ($config['driver'] === 'mysql' && !empty($config['host'])) {
             try {
                 $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']};charset={$config['charset']}";
-                $pdo = new PDO($dsn, $config['user'], $config['password'], [
+                
+                $options = [
                     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::ATTR_EMULATE_PREPARES   => false,
-                    PDO::ATTR_TIMEOUT            => 2,
-                ]);
+                    PDO::ATTR_TIMEOUT            => (int)(getenv('DB_TIMEOUT') ?: 10),
+                ];
+
+                if (defined('PDO::MYSQL_ATTR_MULTI_STATEMENTS')) {
+                    $options[PDO::MYSQL_ATTR_MULTI_STATEMENTS] = true;
+                }
+
+                // TiDB Cloud / SSL Configuration
+                if (!empty($config['ssl'])) {
+                    $caPath = $config['ssl_ca'] ?? '';
+                    if (!$caPath) {
+                        $commonCaPaths = [
+                            '/etc/ssl/certs/ca-certificates.crt', // Render / Debian / Ubuntu
+                            '/etc/pki/tls/certs/ca-bundle.crt',  // CentOS / Fedora
+                            '/etc/ssl/ca-bundle.pem',            // openSUSE
+                        ];
+                        foreach ($commonCaPaths as $path) {
+                            if (file_exists($path)) {
+                                $caPath = $path;
+                                break;
+                            }
+                        }
+                    }
+
+                    if ($caPath && file_exists($caPath) && defined('PDO::MYSQL_ATTR_SSL_CA')) {
+                        $options[PDO::MYSQL_ATTR_SSL_CA] = $caPath;
+                    }
+
+                    if (isset($config['ssl_verify']) && defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
+                        $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = (bool)$config['ssl_verify'];
+                    }
+                }
+
+                $pdo = new PDO($dsn, $config['user'], $config['password'], $options);
                 self::$instance = $pdo;
                 self::$activeDriver = 'mysql';
                 $connected = true;
             } catch (PDOException $e) {
-                // If database doesn't exist, try connecting to MySQL server to create it
+                error_log("TiDB/MySQL connection attempt notice: " . $e->getMessage());
+
+                // If database doesn't exist (SQLSTATE 1049), try creating it
                 if ($e->getCode() == 1049) {
                     try {
                         $rootDsn = "mysql:host={$config['host']};port={$config['port']};charset={$config['charset']}";
-                        $rootPdo = new PDO($rootDsn, $config['user'], $config['password'], [
-                            PDO::ATTR_TIMEOUT => 2,
-                        ]);
+                        $rootPdo = new PDO($rootDsn, $config['user'], $config['password'], $options);
                         $rootPdo->exec("CREATE DATABASE IF NOT EXISTS `{$config['database']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
                         
-                        $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']};charset={$config['charset']}";
-                        self::$instance = new PDO($dsn, $config['user'], $config['password'], [
-                            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-                            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                        ]);
+                        self::$instance = new PDO($dsn, $config['user'], $config['password'], $options);
                         self::$activeDriver = 'mysql';
                         $connected = true;
                     } catch (PDOException $e2) {
-                        // MySQL server failed
+                        error_log("Database auto-creation failed: " . $e2->getMessage());
                     }
                 }
             }
         }
 
-        // If MySQL not connected (e.g. local environment without running MySQL daemon), use SQLite fallback
+        // If MySQL/TiDB not connected (e.g. offline dev without credentials), fallback to SQLite
         if (!$connected) {
             $sqlitePath = $config['sqlite_path'];
             $dir = dirname($sqlitePath);
@@ -110,25 +139,41 @@ class Database
                 ? $baseDir . '/database/sqlite_seed.sql'
                 : $baseDir . '/database/seed_data.sql';
 
-            if (file_exists($schemaFile)) {
-                $sql = file_get_contents($schemaFile);
-                try {
-                    $pdo->exec($sql);
-                } catch (\Exception $e) {
-                    error_log("Schema initialization notice: " . $e->getMessage());
-                }
-            }
+            self::executeSqlFile($pdo, $schemaFile);
+            self::executeSqlFile($pdo, $seedFile);
+        }
+    }
 
-            if (file_exists($seedFile)) {
-                $seedSql = file_get_contents($seedFile);
-                try {
-                    $pdo->exec($seedSql);
-                } catch (\Exception $e) {
-                    error_log("Seed data initialization notice: " . $e->getMessage());
+    private static function executeSqlFile(PDO $pdo, string $filePath): void
+    {
+        if (!file_exists($filePath)) {
+            return;
+        }
+
+        $sql = file_get_contents($filePath);
+        if (empty(trim($sql))) {
+            return;
+        }
+
+        try {
+            $pdo->exec($sql);
+        } catch (\Exception $e) {
+            // Split and run statement by statement if bulk execution fails
+            $cleaned = preg_replace('/--[^\n]*\n/', "\n", $sql);
+            $statements = explode(';', $cleaned);
+            foreach ($statements as $statement) {
+                $statement = trim($statement);
+                if (!empty($statement)) {
+                    try {
+                        $pdo->exec($statement);
+                    } catch (\Exception $subEx) {
+                        // Suppress non-breaking notice
+                    }
                 }
             }
         }
     }
+
 
     public static function table(string $table): QueryBuilder
     {

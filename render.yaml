@@ -19,13 +19,21 @@ services:
       - key: APP_DEBUG
         value: "false"
       - key: DB_DRIVER
-        value: sqlite
+        value: mysql
       - key: SESSION_LIFETIME
         value: "7200"
-      # To connect external or Render MySQL:
-      # - key: DB_DRIVER
-      #   value: mysql
+      # TiDB Cloud Connection:
+      # Set DATABASE_URL or TIDB_HOST in your Render Dashboard -> Environment
       # - key: DATABASE_URL
-      #   fromDatabase:
-      #     name: pharmacy-mysql
-      #     property: connectionString
+      #   value: "mysql://<user>:<password>@<host>:4000/<dbname>?sslmode=verify-full"
+      # Or configure individual TiDB keys:
+      # - key: TIDB_HOST
+      #   value: "gateway01.ap-southeast-1.prod.aws.tidbcloud.com"
+      # - key: TIDB_PORT
+      #   value: "4000"
+      # - key: TIDB_USER
+      #   value: "your_user.root"
+      # - key: TIDB_PASSWORD
+      #   sync: false
+      # - key: TIDB_DATABASE
+      #   value: "pharmacy_db"

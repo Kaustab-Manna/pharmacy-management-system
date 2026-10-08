@@ -8,6 +8,7 @@ FROM php:8.2-apache
 
 # Install system dependencies & PHP extensions
 RUN apt-get update && apt-get install -y \
+    ca-certificates \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
