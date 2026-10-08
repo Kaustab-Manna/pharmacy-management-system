@@ -51,29 +51,50 @@ class AuthController extends Controller
                 }
             }
 
-            // Standard Password Login (supports username, email, and role alias)
+            // Standard Password Login (supports case-insensitive username, email, and normalized aliases)
             $identifier = trim($username);
-            $user = Database::table('users')->where('username', $identifier)->first();
+            $pdo = Database::getConnection();
+
+            // 1. Direct case-insensitive search by username or email
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?) LIMIT 1");
+            $stmt->execute([$identifier, $identifier]);
+            $user = $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+
+            // 2. Normalized search (ignoring underscores, dashes, spaces)
             if (!$user) {
-                // Check by email
-                $user = Database::table('users')->where('email', $identifier)->first();
+                $cleanId = strtolower(str_replace(['_', '-', ' '], '', $identifier));
+                $stmt = $pdo->prepare("SELECT * FROM users WHERE LOWER(REPLACE(REPLACE(REPLACE(username, '_', ''), '-', ''), ' ', '')) = ? LIMIT 1");
+                $stmt->execute([$cleanId]);
+                $user = $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
             }
+
+            // 3. Role alias fallback (maps title to user, e.g. superadmin <=> super_admin, store <=> store_manager)
             if (!$user) {
-                // Check by role aliases (e.g. 'store_manager' -> 'store', 'super_admin' -> 'superadmin')
-                $aliases = [
-                    'store_manager'     => 'store',
-                    'purchase_manager'  => 'purchase',
-                    'billing_executive' => 'billing',
-                    'sales_staff'       => 'sales',
-                    'super_admin'       => 'superadmin',
-                    'pharmacy_admin'    => 'admin',
+                $roleMap = [
+                    'superadmin'        => ['superadmin', 'super_admin'],
+                    'super_admin'       => ['superadmin', 'super_admin'],
+                    'admin'             => ['admin', 'pharmacy_admin'],
+                    'pharmacy_admin'    => ['admin', 'pharmacy_admin'],
+                    'pharmacist'        => ['pharmacist'],
+                    'store'             => ['store', 'store_manager'],
+                    'store_manager'     => ['store', 'store_manager'],
+                    'purchase'          => ['purchase', 'purchase_manager'],
+                    'purchase_manager'  => ['purchase', 'purchase_manager'],
+                    'billing'           => ['billing', 'billing_executive'],
+                    'billing_executive' => ['billing', 'billing_executive'],
+                    'cashier'           => ['cashier'],
+                    'accountant'        => ['accountant'],
+                    'sales'             => ['sales', 'sales_staff'],
+                    'sales_staff'       => ['sales', 'sales_staff'],
                 ];
-                $cleanId = strtolower(str_replace(' ', '_', $identifier));
-                if (isset($aliases[$cleanId])) {
-                    $user = Database::table('users')->where('username', $aliases[$cleanId])->first();
-                }
-                if (!$user) {
-                    $user = Database::table('users')->where('role', $cleanId)->first();
+                $normKey = strtolower(str_replace([' ', '-'], '_', $identifier));
+                if (isset($roleMap[$normKey])) {
+                    foreach ($roleMap[$normKey] as $candidate) {
+                        $stmt = $pdo->prepare("SELECT * FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(role) = LOWER(?) LIMIT 1");
+                        $stmt->execute([$candidate, $candidate]);
+                        $user = $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+                        if ($user) break;
+                    }
                 }
             }
 
