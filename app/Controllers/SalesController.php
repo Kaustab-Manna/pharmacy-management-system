@@ -58,7 +58,10 @@ class SalesController extends Controller
         $this->requireAuth();
 
         $sale = Database::raw("SELECT s.*, p.name as patient_name, p.phone as patient_phone, p.address as patient_address,
-                               d.name as doctor_name, d.registration_number as doctor_reg, u.full_name as cashier_name
+                               COALESCE(d.name, s.doctor_name, 'Self / OTC') as doctor_name, 
+                               d.registration_number as doctor_reg, 
+                               d.hospital_clinic as doctor_clinic,
+                               u.full_name as cashier_name
                                FROM sales s
                                LEFT JOIN patients p ON s.patient_id = p.id
                                LEFT JOIN doctors d ON s.doctor_id = d.id

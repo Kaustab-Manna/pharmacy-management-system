@@ -78,6 +78,12 @@
         <div style="text-align:right;">
             <div style="font-size:11px;font-weight:bold;color:#64748b;text-transform:uppercase;">Doctor & Payment:</div>
             <div style="font-size:12px;color:#0f172a;">Doctor: <strong><?= htmlspecialchars($sale['doctor_name'] ?? 'Self / OTC') ?></strong></div>
+            <?php if (!empty($sale['doctor_clinic'])): ?>
+                <div style="font-size:11px;color:#475569;">Clinic: <?= htmlspecialchars($sale['doctor_clinic']) ?></div>
+            <?php endif; ?>
+            <?php if (!empty($sale['doctor_reg'])): ?>
+                <div style="font-size:10px;color:#64748b;">Reg: <?= htmlspecialchars($sale['doctor_reg']) ?></div>
+            <?php endif; ?>
             <div style="font-size:11px;color:#475569;">Payment Mode: <strong style="text-transform:uppercase;"><?= htmlspecialchars($sale['payment_mode']) ?></strong> (<?= strtoupper($sale['payment_status']) ?>)</div>
         </div>
     </div>

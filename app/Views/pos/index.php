@@ -64,6 +64,31 @@
                 <button class="btn btn-sm btn-secondary" onclick="openModal('quickAddPatientModal')" title="Add Patient">+</button>
             </div>
 
+            <!-- Prescribing Doctor Selector & Quick Register -->
+            <div style="padding:0.5rem 0.85rem;border-bottom:1px solid var(--border-color);background:var(--bg-body);display:flex;gap:0.5rem;align-items:center;">
+                <div style="flex:1;">
+                    <select id="posDoctorSelect" class="form-control" style="font-size:0.85rem;" onchange="toggleCustomDoctorField(this.value)">
+                        <option value="">👨‍⚕️ Prescribing Doctor: Self / OTC (None)</option>
+                        <option value="custom" style="font-weight:600;color:var(--primary);">✏️ Type Unregistered Doctor...</option>
+                        <?php foreach ($doctors as $d): ?>
+                            <option value="<?= $d['id'] ?>" data-name="<?= htmlspecialchars($d['name']) ?>" data-clinic="<?= htmlspecialchars($d['hospital_clinic'] ?? '') ?>" data-reg="<?= htmlspecialchars($d['registration_number'] ?? '') ?>">
+                                <?= htmlspecialchars($d['name']) ?> (<?= htmlspecialchars($d['hospital_clinic'] ?: 'Clinic') ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="openModal('quickAddDoctorModal')" title="Register New Doctor Profile">+</button>
+            </div>
+
+            <!-- Unregistered Doctor Inputs (Shown if 'Type Unregistered Doctor' is selected) -->
+            <div id="unregisteredDoctorFields" style="display:none;padding:0.5rem 0.85rem;background:#fffbeb;border-bottom:1px solid #fde68a;">
+                <div style="font-size:11px;font-weight:600;color:#92400e;margin-bottom:4px;">Unregistered Doctor Details (Prints on Bill):</div>
+                <div style="display:flex;gap:4px;">
+                    <input type="text" id="customDoctorName" class="form-control" placeholder="Doctor Name (e.g. Dr. A. Sen)" style="font-size:0.8rem;padding:4px 8px;flex:1;">
+                    <input type="text" id="customDoctorClinic" class="form-control" placeholder="Clinic / Hospital Name" style="font-size:0.8rem;padding:4px 8px;flex:1;">
+                </div>
+            </div>
+
             <!-- Cart Items Table Header -->
             <div style="padding:0.6rem 0.85rem;background:var(--border-light);border-bottom:1px solid var(--border-color);font-size:0.75rem;font-weight:700;color:var(--text-muted);display:grid;grid-template-columns: 2fr 1fr 1fr 1fr 30px;gap:0.5rem;">
                 <div>MEDICINE / BATCH</div>
@@ -262,6 +287,49 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('quickAddPatientModal')">Cancel</button>
                 <button type="submit" id="savePatientBtn" class="btn btn-primary">Save & Select Patient</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Quick Add Doctor -->
+<div id="quickAddDoctorModal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 480px;">
+        <div class="modal-header">
+            <h3 class="modal-title">➕ Quick Register Doctor Profile</h3>
+            <button class="modal-close" onclick="closeModal('quickAddDoctorModal')">&times;</button>
+        </div>
+        <form id="quickAddDoctorForm" onsubmit="submitQuickAddDoctor(event)">
+            <div class="modal-body">
+                <div style="margin-bottom: 0.85rem;">
+                    <label class="form-label">Doctor Full Name *</label>
+                    <input type="text" id="quickDocName" class="form-control" required placeholder="e.g. Dr. Rajesh Verma, MD" autocomplete="off">
+                </div>
+                <div class="form-row" style="margin-bottom: 0.85rem;">
+                    <div class="form-col">
+                        <label class="form-label">Hospital / Clinic Name</label>
+                        <input type="text" id="quickDocClinic" class="form-control" placeholder="e.g. Lilavati Clinic">
+                    </div>
+                    <div class="form-col">
+                        <label class="form-label">Medical Reg No. (Optional)</label>
+                        <input type="text" id="quickDocReg" class="form-control" placeholder="e.g. MCI-29182">
+                    </div>
+                </div>
+                <div class="form-row" style="margin-bottom: 0.85rem;">
+                    <div class="form-col">
+                        <label class="form-label">Specialization</label>
+                        <input type="text" id="quickDocSpec" class="form-control" value="General Physician" placeholder="Specialty">
+                    </div>
+                    <div class="form-col">
+                        <label class="form-label">Phone (Optional)</label>
+                        <input type="text" id="quickDocPhone" class="form-control" placeholder="+91 ...">
+                    </div>
+                </div>
+                <div id="quickDocMsg" style="display:none;padding:8px 12px;border-radius:6px;font-size:12px;margin-top:6px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('quickAddDoctorModal')">Cancel</button>
+                <button type="submit" id="saveDoctorBtn" class="btn btn-primary">Save & Select Doctor</button>
             </div>
         </form>
     </div>
@@ -477,10 +545,31 @@ function submitPosCheckout() {
     var customerPhone = patientId ? patientSelect.options[patientSelect.selectedIndex].getAttribute('data-phone') : '';
     var paidAmount = parseFloat(document.getElementById('paidAmount').value) || 0;
 
+    var docSelect = document.getElementById('posDoctorSelect');
+    var docId = null;
+    var docName = null;
+    if (docSelect) {
+        if (docSelect.value === 'custom') {
+            var customName = (document.getElementById('customDoctorName').value || '').trim();
+            var customClinic = (document.getElementById('customDoctorClinic').value || '').trim();
+            if (customName) {
+                docName = customName + (customClinic ? ' (' + customClinic + ')' : '');
+            }
+        } else if (docSelect.value) {
+            docId = parseInt(docSelect.value);
+            var selectedOption = docSelect.options[docSelect.selectedIndex];
+            var dName = selectedOption.getAttribute('data-name');
+            var dClinic = selectedOption.getAttribute('data-clinic');
+            docName = dName + (dClinic ? ' (' + dClinic + ')' : '');
+        }
+    }
+
     var payload = {
         patient_id: patientId,
         customer_name: customerName,
         customer_phone: customerPhone,
+        doctor_id: docId,
+        doctor_name: docName,
         prescription_id: activePrescriptionId,
         payment_mode: currentPaymentMode,
         paid_amount: paidAmount,
@@ -630,6 +719,88 @@ function submitQuickAddPatient(e) {
         msgBox.style.background = '#fee2e2';
         msgBox.style.color = '#991b1b';
         msgBox.innerText = 'Network error saving patient: ' + err;
+    });
+}
+
+function toggleCustomDoctorField(val) {
+    var customBox = document.getElementById('unregisteredDoctorFields');
+    if (val === 'custom') {
+        customBox.style.display = 'block';
+        document.getElementById('customDoctorName').focus();
+    } else {
+        customBox.style.display = 'none';
+    }
+}
+
+function submitQuickAddDoctor(e) {
+    e.preventDefault();
+    var name = document.getElementById('quickDocName').value.trim();
+    var clinic = document.getElementById('quickDocClinic').value.trim();
+    var reg = document.getElementById('quickDocReg').value.trim();
+    var spec = document.getElementById('quickDocSpec').value.trim();
+    var phone = document.getElementById('quickDocPhone').value.trim();
+    var msgBox = document.getElementById('quickDocMsg');
+
+    if (!name) {
+        msgBox.style.display = 'block';
+        msgBox.style.background = '#fee2e2';
+        msgBox.style.color = '#991b1b';
+        msgBox.innerText = 'Doctor Name is required.';
+        return;
+    }
+
+    var saveBtn = document.getElementById('saveDoctorBtn');
+    saveBtn.disabled = true;
+    saveBtn.innerText = 'Saving...';
+    msgBox.style.display = 'none';
+
+    var formData = new URLSearchParams();
+    formData.append('name', name);
+    formData.append('hospital_clinic', clinic);
+    formData.append('registration_number', reg);
+    formData.append('specialization', spec);
+    formData.append('phone', phone);
+
+    fetch('<?= $baseURL ?>/doctors/create', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData.toString()
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        saveBtn.disabled = false;
+        saveBtn.innerText = 'Save & Select Doctor';
+        if (data.success) {
+            var select = document.getElementById('posDoctorSelect');
+            var opt = document.createElement('option');
+            opt.value = data.id;
+            opt.setAttribute('data-name', data.name);
+            opt.setAttribute('data-clinic', data.hospital_clinic || '');
+            opt.setAttribute('data-reg', data.registration_number || '');
+            opt.textContent = data.name + (data.hospital_clinic ? ' (' + data.hospital_clinic + ')' : '');
+            select.appendChild(opt);
+            select.value = data.id;
+
+            toggleCustomDoctorField(data.id);
+            closeModal('quickAddDoctorModal');
+            document.getElementById('quickAddDoctorForm').reset();
+        } else {
+            msgBox.style.display = 'block';
+            msgBox.style.background = '#fee2e2';
+            msgBox.style.color = '#991b1b';
+            msgBox.innerText = data.message || 'Error saving doctor.';
+        }
+    })
+    .catch(function(err) {
+        saveBtn.disabled = false;
+        saveBtn.innerText = 'Save & Select Doctor';
+        msgBox.style.display = 'block';
+        msgBox.style.background = '#fee2e2';
+        msgBox.style.color = '#991b1b';
+        msgBox.innerText = 'Network error saving doctor: ' + err;
     });
 }
 

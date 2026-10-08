@@ -75,7 +75,19 @@ class PosController extends Controller
         $patientId = !empty($input['patient_id']) ? (int)$input['patient_id'] : null;
         $customerName = trim($input['customer_name'] ?? 'Walk-in Cash Customer');
         $customerPhone = trim($input['customer_phone'] ?? '');
-        $doctorId = !empty($input['doctor_id']) ? (int)$input['doctor_id'] : null;
+        $doctorId = !empty($input['doctor_id']) && is_numeric($input['doctor_id']) ? (int)$input['doctor_id'] : null;
+        $doctorName = trim($input['doctor_name'] ?? '');
+
+        if ($doctorId && empty($doctorName)) {
+            $doc = Database::table('doctors')->where('id', $doctorId)->first();
+            if ($doc) {
+                $doctorName = $doc['name'];
+                if (!empty($doc['hospital_clinic'])) {
+                    $doctorName .= ' (' . $doc['hospital_clinic'] . ')';
+                }
+            }
+        }
+
         $prescriptionId = !empty($input['prescription_id']) ? (int)$input['prescription_id'] : null;
         $paymentMode = trim($input['payment_mode'] ?? 'cash');
         $paidAmount = (float)($input['paid_amount'] ?? 0);
@@ -182,6 +194,7 @@ class PosController extends Controller
             'customer_name'       => $customerName,
             'customer_phone'      => $customerPhone,
             'doctor_id'           => $doctorId,
+            'doctor_name'         => $doctorName ?: null,
             'sale_date'           => date('Y-m-d H:i:s'),
             'subtotal'            => $subtotal,
             'tax_amount'          => $totalTax,
