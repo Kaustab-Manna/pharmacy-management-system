@@ -120,7 +120,7 @@
     <form method="POST" action="<?= $baseURL ?>/login">
         <div class="form-group">
             <label class="form-label" for="username">Username / Email</label>
-            <input type="text" id="username" name="username" class="form-control" placeholder="Enter username (e.g. admin)" required value="admin">
+            <input type="text" id="username" name="username" class="form-control" placeholder="Enter username or email" required value="<?= htmlspecialchars($_POST['username'] ?? 'admin') ?>">
         </div>
 
         <div class="form-group" style="margin-bottom: 1.5rem;">
@@ -128,7 +128,7 @@
                 <label class="form-label" for="password" style="margin-bottom:0;">Password</label>
                 <span style="font-size:0.75rem;color:#0d9488;">Default: admin123</span>
             </div>
-            <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required value="admin123">
+            <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required value="<?= htmlspecialchars($_POST['password'] ?? 'admin123') ?>">
         </div>
 
         <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 0.95rem;">

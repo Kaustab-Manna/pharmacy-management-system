@@ -22,15 +22,61 @@ class AuthController extends Controller
             // Handle Quick 1-Click Role Login for instant testing of all 9 roles
             if ($quickRole) {
                 $user = Database::table('users')->where('role', $quickRole)->first();
+                if (!$user) {
+                    $altRole = str_replace('_', '', $quickRole);
+                    $user = Database::table('users')->where('role', $altRole)->first();
+                }
+                if (!$user) {
+                    $roleAliases = [
+                        'super_admin'       => 'superadmin',
+                        'pharmacy_admin'    => 'admin',
+                        'store_manager'     => 'store',
+                        'purchase_manager'  => 'purchase',
+                        'billing_executive' => 'billing',
+                        'sales_staff'       => 'sales',
+                    ];
+                    if (isset($roleAliases[$quickRole])) {
+                        $user = Database::table('users')->where('username', $roleAliases[$quickRole])->first();
+                    }
+                }
+
                 if ($user) {
                     $this->setLoginSession($user);
                     $this->logAudit('login', 'auth', $user['id'], "Quick login as {$user['role']}");
                     $this->redirect(App::baseURL() . '/dashboard', 'success', "Welcome, {$user['full_name']} ({$user['role']})!");
+                    return;
+                } else {
+                    $this->render('auth.login', ['error' => "Demo user for '{$quickRole}' not found. Please log in using username: admin, password: admin123"], false);
+                    return;
                 }
             }
 
-            // Standard Password Login
-            $user = Database::table('users')->where('username', $username)->first();
+            // Standard Password Login (supports username, email, and role alias)
+            $identifier = trim($username);
+            $user = Database::table('users')->where('username', $identifier)->first();
+            if (!$user) {
+                // Check by email
+                $user = Database::table('users')->where('email', $identifier)->first();
+            }
+            if (!$user) {
+                // Check by role aliases (e.g. 'store_manager' -> 'store', 'super_admin' -> 'superadmin')
+                $aliases = [
+                    'store_manager'     => 'store',
+                    'purchase_manager'  => 'purchase',
+                    'billing_executive' => 'billing',
+                    'sales_staff'       => 'sales',
+                    'super_admin'       => 'superadmin',
+                    'pharmacy_admin'    => 'admin',
+                ];
+                $cleanId = strtolower(str_replace(' ', '_', $identifier));
+                if (isset($aliases[$cleanId])) {
+                    $user = Database::table('users')->where('username', $aliases[$cleanId])->first();
+                }
+                if (!$user) {
+                    $user = Database::table('users')->where('role', $cleanId)->first();
+                }
+            }
+
             if ($user && password_verify($password, $user['password'])) {
                 if (!$user['is_active']) {
                     $this->render('auth.login', ['error' => 'Your account is deactivated. Contact Administrator.'], false);
@@ -40,6 +86,7 @@ class AuthController extends Controller
                 $this->setLoginSession($user);
                 $this->logAudit('login', 'auth', $user['id'], "User logged in successfully");
                 $this->redirect(App::baseURL() . '/dashboard', 'success', "Welcome back, {$user['full_name']}!");
+                return;
             } else {
                 $this->render('auth.login', ['error' => 'Invalid username or password (default password is: admin123)'], false);
                 return;
