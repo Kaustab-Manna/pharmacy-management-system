@@ -40,6 +40,7 @@ class Database
                     $caPath = $config['ssl_ca'] ?? '';
                     if (!$caPath) {
                         $commonCaPaths = [
+                            dirname(__DIR__, 2) . '/database/isrgrootx1.pem',
                             '/etc/ssl/certs/ca-certificates.crt', // Render / Debian / Ubuntu
                             '/etc/pki/tls/certs/ca-bundle.crt',  // CentOS / Fedora
                             '/etc/ssl/ca-bundle.pem',            // openSUSE
