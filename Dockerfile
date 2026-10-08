@@ -55,14 +55,11 @@ RUN mkdir -p /var/www/html/writable/cache \
     && chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/writable /var/www/html/public/uploads /var/www/html/database
 
-# Configure Apache to bind dynamically to $PORT environment variable provided by Render
-RUN echo '#!/bin/bash\n\
-PORT="${PORT:-8080}"\n\
-sed -i "s/80/$PORT/g" /etc/apache2/ports.conf /etc/apache2/sites-available/*.conf\n\
-exec apache2-foreground\n' > /usr/local/bin/entrypoint.sh \
-    && chmod +x /usr/local/bin/entrypoint.sh
+# Copy entrypoint script and ensure it is executable
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Expose default Render port
+# Expose default port (Render will override via $PORT at runtime)
 EXPOSE 8080
 
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

@@ -10,3 +10,5 @@ writable/session/*
 run-local.bat
 test_*.php
 test_cookie.txt
+c.txt
+tcookie.txt
