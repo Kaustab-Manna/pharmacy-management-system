@@ -9,7 +9,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- Users (Password for all accounts is: admin123)
 -- -------------------------------------------------------
 INSERT INTO `users` (`id`, `username`, `email`, `password`, `full_name`, `role`, `phone`, `is_active`, `created_at`) VALUES
-(1, 'superadmin', 'superadmin@infosofpharmacy.com', '$2y$10$nqN/o0ExLMvWhU4e4aaKuerasJDAc70JTUGkGL9.IobNjURrAvTkq', 'System Super Admin', 'superadmin', '+91 98200 00001', 1, NOW()),
+(1, 'superadmin', 'superadmin@infosofpharmacy.com', '$2y$10$nqN/o0ExLMvWhU4e4aaKuerasJDAc70JTUGkGL9.IobNjURrAvTkq', 'System Super Admin', 'super_admin', '+91 98200 00001', 1, NOW()),
 (2, 'admin', 'admin@infosofpharmacy.com', '$2y$10$nqN/o0ExLMvWhU4e4aaKuerasJDAc70JTUGkGL9.IobNjURrAvTkq', 'Ramesh Iyer (Pharmacy Admin)', 'pharmacy_admin', '+91 98200 00002', 1, NOW()),
 (3, 'pharmacist', 'pharmacist@infosofpharmacy.com', '$2y$10$nqN/o0ExLMvWhU4e4aaKuerasJDAc70JTUGkGL9.IobNjURrAvTkq', 'Dr. Rajesh Sharma (Pharmacist)', 'pharmacist', '+91 98200 00003', 1, NOW()),
 (4, 'store', 'store@infosofpharmacy.com', '$2y$10$nqN/o0ExLMvWhU4e4aaKuerasJDAc70JTUGkGL9.IobNjURrAvTkq', 'Vikram Rathore (Warehouse Mgr)', 'store_manager', '+91 98200 00004', 1, NOW()),

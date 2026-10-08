@@ -15,17 +15,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `email` VARCHAR(100) NOT NULL UNIQUE,
   `password` VARCHAR(255) NOT NULL,
   `full_name` VARCHAR(100) NOT NULL,
-  `role` ENUM(
-    'super_admin',
-    'pharmacy_admin',
-    'pharmacist',
-    'store_manager',
-    'purchase_manager',
-    'billing_executive',
-    'cashier',
-    'accountant',
-    'sales_staff'
-  ) NOT NULL DEFAULT 'cashier',
+  `role` VARCHAR(50) NOT NULL DEFAULT 'cashier',
   `phone` VARCHAR(20) DEFAULT NULL,
   `is_active` TINYINT(1) NOT NULL DEFAULT 1,
   `two_factor_enabled` TINYINT(1) NOT NULL DEFAULT 0,
