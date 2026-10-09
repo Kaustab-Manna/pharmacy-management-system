@@ -161,6 +161,13 @@ class PosController extends Controller
             ];
         }
 
+        // Apply overall bill discount
+        $billDiscount = (float)($input['bill_discount'] ?? ($input['discount_amount'] ?? 0));
+        if ($billDiscount > 0) {
+            $billDiscount = min($billDiscount, $subtotal);
+            $totalDiscount += $billDiscount;
+        }
+
         // Apply Loyalty / Coupon Discounts
         $loyaltyDiscount = 0;
         if ($useLoyaltyPoints > 0 && $patientId) {
@@ -174,7 +181,7 @@ class PosController extends Controller
             }
         }
 
-        $grossTotal = $subtotal - $totalDiscount - $loyaltyDiscount + $totalTax;
+        $grossTotal = max(0, $subtotal - $totalDiscount - $loyaltyDiscount + $totalTax);
         $grandTotal = round($grossTotal);
         $roundOff = $grandTotal - $grossTotal;
 

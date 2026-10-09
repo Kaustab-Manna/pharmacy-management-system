@@ -189,15 +189,15 @@ function initShortcuts() {
             return false;
         }
 
-        // F8 (KeyCode 119): Focus Payment Cash Received Field
+        // F8 (KeyCode 119): Focus POS Discount Field or Payment Field
         if (key === 'F8' || keyCode === 119) {
-            var paidInput = document.getElementById('paidAmount');
-            if (paidInput) {
+            var discountInput = document.getElementById('billDiscountValue') || document.getElementById('paidAmount');
+            if (discountInput) {
                 e.preventDefault();
                 e.stopPropagation();
-                paidInput.focus();
-                if (typeof paidInput.select === 'function') {
-                    paidInput.select();
+                discountInput.focus();
+                if (typeof discountInput.select === 'function') {
+                    discountInput.select();
                 }
                 return false;
             }

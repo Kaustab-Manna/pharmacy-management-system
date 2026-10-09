@@ -24,7 +24,7 @@
                     <kbd style="background:var(--bg-card);padding:2px 6px;border-radius:4px;border:1px solid var(--border-color);font-weight:700;">F4</kbd>
                 </div>
                 <div style="background:var(--bg-body);padding:8px 12px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
-                    <span>Focus Payment Field</span>
+                    <span>Focus Discount Field</span>
                     <kbd style="background:var(--bg-card);padding:2px 6px;border-radius:4px;border:1px solid var(--border-color);font-weight:700;">F8</kbd>
                 </div>
                 <div style="background:var(--bg-body);padding:8px 12px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;">

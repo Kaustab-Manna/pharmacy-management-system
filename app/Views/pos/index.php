@@ -137,14 +137,30 @@
                     <button type="button" class="btn btn-sm btn-secondary" id="btnModeCredit" onclick="setPaymentMode('credit')">⚖️ Credit</button>
                 </div>
 
-                <!-- Cash Tendered & Change -->
-                <div id="cashCalcBox" style="display:flex;gap:6px;margin-bottom:8px;">
-                    <div style="flex:1;">
-                        <input type="number" step="1" id="paidAmount" class="form-control" placeholder="Cash Received (F8)" style="font-size:12px;padding:4px 8px;" oninput="calculateChange()">
+                <!-- Hidden input to keep paidAmount in sync for complete checkout -->
+                <input type="hidden" id="paidAmount" value="0">
+
+                <!-- Bill Discount Section (Replaced Cash Received) -->
+                <div id="discountBox" style="margin-bottom:8px;background:var(--bg-body);padding:8px 10px;border-radius:8px;border:1px solid var(--border-color);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <span style="font-size:11px;font-weight:700;color:var(--text-main);display:flex;align-items:center;gap:4px;">
+                            🏷️ Discount (F8)
+                        </span>
+                        <div style="display:flex;gap:2px;background:var(--border-light);padding:2px;border-radius:5px;">
+                            <button type="button" id="btnDiscountPercent" class="btn btn-sm" style="padding:2px 8px;font-size:11px;font-weight:700;border-radius:4px;background:var(--primary);color:#fff;" onclick="setDiscountType('percent')">%</button>
+                            <button type="button" id="btnDiscountFlat" class="btn btn-sm" style="padding:2px 8px;font-size:11px;font-weight:700;border-radius:4px;background:transparent;color:var(--text-main);" onclick="setDiscountType('flat')"><?= $pharmacy['currency_symbol'] ?></button>
+                        </div>
                     </div>
-                    <div style="flex:1;background:var(--border-light);padding:4px 8px;border-radius:6px;font-size:11px;display:flex;flex-direction:column;justify-content:center;">
-                        <span style="color:var(--text-muted);">Change Due:</span>
-                        <strong id="changeDueText" style="color:var(--primary);font-size:13px;"><?= $pharmacy['currency_symbol'] ?>0.00</strong>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <div style="flex:1.2;position:relative;">
+                            <input type="number" step="any" min="0" id="billDiscountValue" class="form-control" placeholder="Discount % (F8)" style="font-size:12px;padding:5px 8px;font-weight:600;" oninput="applyBillDiscount()" onchange="applyBillDiscount()">
+                        </div>
+                        <div style="display:flex;gap:3px;">
+                            <button type="button" class="btn btn-sm btn-secondary" style="padding:4px 6px;font-size:10px;font-weight:600;" onclick="setDiscountPreset(0)">0%</button>
+                            <button type="button" class="btn btn-sm btn-secondary" style="padding:4px 6px;font-size:10px;font-weight:600;" onclick="setDiscountPreset(5)">5%</button>
+                            <button type="button" class="btn btn-sm btn-secondary" style="padding:4px 6px;font-size:10px;font-weight:600;" onclick="setDiscountPreset(10)">10%</button>
+                            <button type="button" class="btn btn-sm btn-secondary" style="padding:4px 6px;font-size:10px;font-weight:600;" onclick="setDiscountPreset(15)">15%</button>
+                        </div>
                     </div>
                 </div>
 
@@ -466,7 +482,17 @@ function renderCart() {
     });
 
     list.innerHTML = html;
-    var grandTotal = Math.round(subtotal - totalDiscount + totalTax);
+
+    // Calculate bill discount
+    if (currentDiscountType === 'percent') {
+        currentBillDiscountAmount = (subtotal * currentBillDiscountValue) / 100;
+    } else {
+        currentBillDiscountAmount = currentBillDiscountValue;
+    }
+    currentBillDiscountAmount = Math.min(currentBillDiscountAmount, subtotal);
+
+    var totalDiscount = totalItemDiscount + currentBillDiscountAmount;
+    var grandTotal = Math.max(0, Math.round(subtotal - totalDiscount + totalTax));
     updateTotals(subtotal, totalTax, totalDiscount, grandTotal);
 }
 
@@ -477,10 +503,47 @@ function updateTotals(subtotal, tax, discount, grandTotal) {
     document.getElementById('summaryGrandTotal').innerText = '<?= $pharmacy['currency_symbol'] ?>' + grandTotal.toFixed(2);
     
     var paidInput = document.getElementById('paidAmount');
-    if (paidInput && (!paidInput.value || parseFloat(paidInput.value) <= 0)) {
+    if (paidInput) {
         paidInput.value = grandTotal;
     }
-    calculateChange();
+}
+
+var currentDiscountType = 'percent'; // 'percent' or 'flat'
+var currentBillDiscountValue = 0;
+var currentBillDiscountAmount = 0;
+
+function setDiscountType(type) {
+    currentDiscountType = type;
+    var btnPct = document.getElementById('btnDiscountPercent');
+    var btnFlat = document.getElementById('btnDiscountFlat');
+    var input = document.getElementById('billDiscountValue');
+
+    if (type === 'percent') {
+        if (btnPct) { btnPct.style.background = 'var(--primary)'; btnPct.style.color = '#fff'; }
+        if (btnFlat) { btnFlat.style.background = 'transparent'; btnFlat.style.color = 'var(--text-main)'; }
+        if (input) input.placeholder = 'Discount % (F8)';
+    } else {
+        if (btnFlat) { btnFlat.style.background = 'var(--primary)'; btnFlat.style.color = '#fff'; }
+        if (btnPct) { btnPct.style.background = 'transparent'; btnPct.style.color = 'var(--text-main)'; }
+        if (input) input.placeholder = 'Discount Amount (F8)';
+    }
+    applyBillDiscount();
+}
+
+function setDiscountPreset(pct) {
+    setDiscountType('percent');
+    var input = document.getElementById('billDiscountValue');
+    if (input) {
+        input.value = pct > 0 ? pct : '';
+    }
+    applyBillDiscount();
+}
+
+function applyBillDiscount() {
+    var input = document.getElementById('billDiscountValue');
+    var val = parseFloat(input ? input.value : 0) || 0;
+    currentBillDiscountValue = Math.max(0, val);
+    renderCart();
 }
 
 function setPaymentMode(mode) {
@@ -573,6 +636,8 @@ function submitPosCheckout() {
         prescription_id: activePrescriptionId,
         payment_mode: currentPaymentMode,
         paid_amount: paidAmount,
+        bill_discount: currentBillDiscountAmount || 0,
+        discount_amount: currentBillDiscountAmount || 0,
         items: posCart
     };
 
@@ -633,6 +698,10 @@ function resetPosCart() {
     posCart = [];
     activePrescriptionId = null;
     document.getElementById('posPatientSelect').value = '';
+    var discInput = document.getElementById('billDiscountValue');
+    if (discInput) discInput.value = '';
+    currentBillDiscountValue = 0;
+    currentBillDiscountAmount = 0;
     renderCart();
     document.getElementById('posSearchInput').focus();
 }
