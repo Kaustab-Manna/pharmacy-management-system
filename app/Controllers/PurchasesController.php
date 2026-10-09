@@ -295,10 +295,13 @@ class PurchasesController extends Controller
         ]);
 
         // Reduce supplier dues balance
-        Database::raw("UPDATE suppliers SET current_balance = MAX(0, current_balance - ?) WHERE id = ?", [$payAmount, (int)$purchase['supplier_id']]);
-
-        // Record financial transaction
-        $supplier = Database::table('suppliers')->where('id', $purchase['supplier_id'])->first();
+        $supplier = Database::table('suppliers')->where('id', (int)$purchase['supplier_id'])->first();
+        if ($supplier) {
+            $newSupplierBal = max(0, (float)($supplier['current_balance'] ?? 0) - $payAmount);
+            Database::table('suppliers')->where('id', (int)$purchase['supplier_id'])->update([
+                'current_balance' => $newSupplierBal
+            ]);
+        }
         $supplierName = $supplier['company_name'] ?? ('Supplier #' . $purchase['supplier_id']);
 
         Database::table('financial_transactions')->insert([
