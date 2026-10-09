@@ -346,6 +346,24 @@
                         </select>
                     </div>
                 </div>
+
+                <!-- Prominent Pricing & MRP Section -->
+                <div style="background:var(--bg-body);padding:14px;border-radius:8px;margin-top:1rem;border:1px solid var(--border-color);">
+                    <div style="font-weight:700;font-size:0.9rem;color:var(--primary);margin-bottom:0.75rem;display:flex;align-items:center;gap:6px;">
+                        <span>🏷️</span> Medicine Pricing & MRP (Applies to Batches)
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label class="form-label" style="font-weight:700;">Maximum Retail Price (MRP ₹) *</label>
+                            <input type="number" step="0.01" id="edit_mrp" name="mrp" class="form-control" placeholder="0.00" style="font-size:1.1rem;font-weight:700;color:var(--primary);" oninput="autoUpdateSellingPrice()">
+                        </div>
+                        <div class="form-col">
+                            <label class="form-label">Retail Selling Price (₹)</label>
+                            <input type="number" step="0.01" id="edit_selling_price" name="selling_price" class="form-control" placeholder="0.00">
+                            <small style="color:var(--text-muted);font-size:11px;">Default is 5% discount on MRP for retail billing.</small>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('editMedicineModal')">Cancel</button>
@@ -356,6 +374,14 @@
 </div>
 
 <script>
+function autoUpdateSellingPrice() {
+    var mrp = parseFloat(document.getElementById('edit_mrp').value) || 0;
+    var sellInput = document.getElementById('edit_selling_price');
+    if (mrp > 0 && (!sellInput.value || parseFloat(sellInput.value) === 0)) {
+        sellInput.value = (mrp * 0.95).toFixed(2);
+    }
+}
+
 function editMedicine(med) {
     document.getElementById('editMedicineForm').action = '<?= $baseURL ?>/medicines/edit/' + med.id;
     document.getElementById('edit_brand_name').value = med.brand_name || '';
@@ -369,6 +395,8 @@ function editMedicine(med) {
     document.getElementById('edit_unit').value = med.unit || '';
     document.getElementById('edit_hsn_code').value = med.hsn_code || '';
     document.getElementById('edit_gst_rate').value = med.gst_rate || '12.00';
+    document.getElementById('edit_mrp').value = med.current_mrp ? parseFloat(med.current_mrp).toFixed(2) : '';
+    document.getElementById('edit_selling_price').value = med.current_selling_price ? parseFloat(med.current_selling_price).toFixed(2) : (med.current_mrp ? (parseFloat(med.current_mrp) * 0.95).toFixed(2) : '');
     document.getElementById('edit_requires_prescription').value = med.requires_prescription || '0';
     openModal('editMedicineModal');
 }

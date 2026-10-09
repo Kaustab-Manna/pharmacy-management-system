@@ -17,7 +17,8 @@ class MedicinesController extends Controller
         $query = "SELECT m.*, c.name as category_name, 
                   COALESCE((SELECT SUM(b.quantity) FROM batches b WHERE b.medicine_id = m.id AND b.status = 'active'), 0) as current_stock,
                   COALESCE((SELECT MIN(b.expiry_date) FROM batches b WHERE b.medicine_id = m.id AND b.status = 'active' AND b.quantity > 0), NULL) as earliest_expiry,
-                  COALESCE((SELECT b.mrp FROM batches b WHERE b.medicine_id = m.id AND b.status = 'active' ORDER BY b.expiry_date ASC LIMIT 1), 0) as current_mrp
+                  COALESCE((SELECT b.mrp FROM batches b WHERE b.medicine_id = m.id AND b.status = 'active' ORDER BY b.expiry_date ASC LIMIT 1), 0) as current_mrp,
+                  COALESCE((SELECT b.selling_price FROM batches b WHERE b.medicine_id = m.id AND b.status = 'active' ORDER BY b.expiry_date ASC LIMIT 1), 0) as current_selling_price
                   FROM medicines m 
                   LEFT JOIN categories c ON m.category_id = c.id
                   WHERE 1=1";
@@ -154,8 +155,51 @@ class MedicinesController extends Controller
                 'updated_at'            => date('Y-m-d H:i:s')
             ]);
 
-            $this->logAudit('update_medicine', 'medicines', $id, "Updated medicine {$medicine['name']}");
-            $this->redirect(App::baseURL() . '/medicines', 'success', "Medicine updated successfully.");
+            // Update MRP & selling price on medicine's batches if provided
+            $mrp = (float)$this->request->post('mrp', 0);
+            if ($mrp > 0) {
+                $sellingPrice = (float)$this->request->post('selling_price', 0);
+                if ($sellingPrice <= 0) {
+                    $sellingPrice = round($mrp * 0.95, 2);
+                }
+
+                $activeBatches = Database::table('batches')->where('medicine_id', $id)->where('status', 'active')->get();
+                if (!empty($activeBatches)) {
+                    Database::table('batches')->where('medicine_id', $id)->where('status', 'active')->update([
+                        'mrp'           => $mrp,
+                        'selling_price' => $sellingPrice,
+                        'updated_at'    => date('Y-m-d H:i:s')
+                    ]);
+                } else {
+                    $anyBatch = Database::table('batches')->where('medicine_id', $id)->first();
+                    if ($anyBatch) {
+                        Database::table('batches')->where('id', $anyBatch['id'])->update([
+                            'mrp'           => $mrp,
+                            'selling_price' => $sellingPrice,
+                            'status'        => 'active',
+                            'updated_at'    => date('Y-m-d H:i:s')
+                        ]);
+                    } else {
+                        Database::table('batches')->insert([
+                            'medicine_id'      => $id,
+                            'batch_number'     => 'B-' . date('Y') . '-01',
+                            'mfg_date'         => date('Y-m-d'),
+                            'expiry_date'      => date('Y-m-d', strtotime('+2 years')),
+                            'quantity'         => 0,
+                            'initial_quantity' => 0,
+                            'purchase_price'   => round($mrp * 0.70, 2),
+                            'selling_price'    => $sellingPrice,
+                            'mrp'              => $mrp,
+                            'barcode'          => '890' . rand(100000000, 999999999),
+                            'status'           => 'active',
+                            'created_at'       => date('Y-m-d H:i:s')
+                        ]);
+                    }
+                }
+            }
+
+            $this->logAudit('update_medicine', 'medicines', $id, "Updated medicine {$medicine['name']}" . ($mrp > 0 ? " (MRP: ₹{$mrp})" : ""));
+            $this->redirect(App::baseURL() . '/medicines', 'success', "Medicine and batch MRP updated successfully.");
         }
     }
 

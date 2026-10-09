@@ -116,6 +116,7 @@
                             <td>
                                 <div style="display:flex;gap:4px;">
                                     <button class="btn btn-sm btn-secondary" onclick="openAdjustModal(<?= $b['id'] ?>, '<?= htmlspecialchars($b['batch_number']) ?>', <?= $b['quantity'] ?>)" title="Adjust Physical Stock">⚖️</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="openBatchPriceModal(<?= $b['id'] ?>, '<?= htmlspecialchars(addslashes($b['brand_name'])) ?>', '<?= htmlspecialchars($b['batch_number']) ?>', <?= $b['mrp'] ?>, <?= $b['selling_price'] ?>, <?= $b['wholesale_price'] ?: ($b['purchase_price'] * 1.1) ?>)" title="Edit Batch MRP & Selling Price">✏️</button>
                                     <a href="<?= $baseURL ?>/barcode/print?batch_id=<?= $b['id'] ?>" class="btn btn-sm btn-secondary" title="Print Barcode Label">🏷️</a>
                                 </div>
                             </td>
@@ -231,7 +232,62 @@
     </div>
 </div>
 
+<!-- Modal: Edit Batch Pricing & MRP -->
+<div id="batchPriceModal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 480px;">
+        <div class="modal-header">
+            <h3 class="modal-title">🏷️ Edit Batch MRP & Pricing</h3>
+            <button class="modal-close" onclick="closeModal('batchPriceModal')">&times;</button>
+        </div>
+        <form id="batchPriceForm" method="POST">
+            <input type="hidden" name="redirect_to" value="<?= $baseURL ?>/batches">
+            <div class="modal-body">
+                <div style="margin-bottom:1rem;background:var(--bg-body);padding:10px;border-radius:6px;border:1px solid var(--border-color);">
+                    Medicine: <strong id="bp_brand_name" style="color:var(--primary);"></strong><br>
+                    Batch No: <code id="bp_batch_number"></code>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Maximum Retail Price (MRP ₹) *</label>
+                    <input type="number" step="0.01" id="bp_mrp" name="mrp" class="form-control" required oninput="autoUpdateBatchSellPrice()">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Retail Selling Price (₹) *</label>
+                    <input type="number" step="0.01" id="bp_selling_price" name="selling_price" class="form-control" required>
+                    <small style="color:var(--text-muted);font-size:11px;">Counter price charged to retail patients</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Wholesale Price (₹)</label>
+                    <input type="number" step="0.01" id="bp_wholesale_price" name="wholesale_price" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('batchPriceModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Pricing</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+function autoUpdateBatchSellPrice() {
+    var mrp = parseFloat(document.getElementById('bp_mrp').value) || 0;
+    var sellInput = document.getElementById('bp_selling_price');
+    if (mrp > 0 && (!sellInput.value || parseFloat(sellInput.value) === 0)) {
+        sellInput.value = (mrp * 0.95).toFixed(2);
+    }
+}
+
+function openBatchPriceModal(id, brand, batch, mrp, sell, wholesale) {
+    document.getElementById('batchPriceForm').action = '<?= $baseURL ?>/pricing/update/' + id;
+    document.getElementById('bp_brand_name').innerText = brand;
+    document.getElementById('bp_batch_number').innerText = batch;
+    document.getElementById('bp_mrp').value = mrp ? parseFloat(mrp).toFixed(2) : '';
+    document.getElementById('bp_selling_price').value = sell ? parseFloat(sell).toFixed(2) : (mrp ? (mrp * 0.95).toFixed(2) : '');
+    document.getElementById('bp_wholesale_price').value = wholesale ? parseFloat(wholesale).toFixed(2) : '';
+    openModal('batchPriceModal');
+}
+
 function openAdjustModal(id, batchNo, currentQty) {
     document.getElementById('adjustForm').action = '<?= $baseURL ?>/batches/adjust/' + id;
     document.getElementById('adjust_batch_number').innerText = batchNo;

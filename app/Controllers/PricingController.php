@@ -44,7 +44,8 @@ class PricingController extends Controller
             ]);
 
             $this->logAudit('update_price', 'pricing', $batchId, "Updated prices: MRP {$mrp}, Retail {$sellingPrice}, Wholesale {$wholesalePrice}");
-            $this->redirect(App::baseURL() . '/pricing', 'success', 'Prices updated successfully.');
+            $redirect = $this->request->post('redirect_to') ?: (App::baseURL() . '/pricing');
+            $this->redirect($redirect, 'success', 'Prices and MRP updated successfully.');
         }
     }
 }
