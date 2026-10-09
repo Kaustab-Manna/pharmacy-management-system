@@ -189,13 +189,15 @@ $router->post('/notifications/mark-read', 'NotificationsController@markAllRead')
 // Module 30: WhatsApp / SMS / Email Integration
 $router->get('/integration', 'IntegrationController@index');
 
-// Module 31: Online / E-Pharmacy Order Management
+// Online / E-Pharmacy Order Management
 $router->get('/online-orders', 'OnlineOrdersController@index');
 $router->get('/online_orders', 'OnlineOrdersController@index');
 $router->post('/online-orders/create', 'OnlineOrdersController@create');
 $router->post('/online_orders/create', 'OnlineOrdersController@create');
 $router->post('/online-orders/update-status/(:num)', 'OnlineOrdersController@updateStatus');
 $router->post('/online_orders/update-status/(:num)', 'OnlineOrdersController@updateStatus');
+$router->get('/online-orders/details/(:num)', 'OnlineOrdersController@details');
+$router->get('/online_orders/details/(:num)', 'OnlineOrdersController@details');
 
 // Module 32: Delivery Management
 $router->get('/delivery', 'DeliveryController@index');
