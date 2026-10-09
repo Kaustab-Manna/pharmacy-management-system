@@ -13,12 +13,14 @@ class PurchaseOrdersController extends Controller
 
         $orders = Database::raw("SELECT po.*, s.company_name as supplier_name, s.phone as supplier_phone,
                                  u.full_name as created_by_name, app.full_name as approved_by_name,
-                                 (SELECT COUNT(*) FROM purchase_order_items WHERE po_id = po.id) as item_count
+                                 (SELECT COUNT(*) FROM purchase_order_items WHERE po_id = po.id) as item_count,
+                                 (SELECT invoice_number FROM purchases WHERE po_id = po.id LIMIT 1) as purchase_invoice_number,
+                                 (SELECT id FROM purchases WHERE po_id = po.id LIMIT 1) as purchase_id
                                  FROM purchase_orders po
                                  JOIN suppliers s ON po.supplier_id = s.id
                                  LEFT JOIN users u ON po.created_by = u.id
                                  LEFT JOIN users app ON po.approved_by = app.id
-                                 ORDER BY po.order_date DESC");
+                                 ORDER BY po.order_date DESC, po.id DESC");
 
         $suppliers = Database::table('suppliers')->where('is_active', 1)->get();
         $medicines = Database::table('medicines')->where('is_active', 1)->orderBy('name', 'ASC')->get();
@@ -108,7 +110,14 @@ class PurchaseOrdersController extends Controller
             'approved_by' => $this->getUser()['id'] ?? null
         ]);
 
-        $this->redirect(App::baseURL() . '/purchase-orders', 'success', 'Purchase Order approved.');
+        $action = $this->request->post('action');
+        if ($action === 'only_approve') {
+            $this->redirect(App::baseURL() . '/purchase-orders', 'success', 'Purchase Order approved.');
+            return;
+        }
+
+        // By default, approving a PO immediately converts to a Purchase Invoice and updates stock
+        $this->convertToInvoice($id);
     }
 
     public function convertToInvoice(int $id): void
@@ -116,10 +125,173 @@ class PurchaseOrdersController extends Controller
         $this->checkPermission('purchases', 'create');
 
         $po = Database::table('purchase_orders')->where('id', $id)->first();
-        if ($po) {
-            Database::table('purchase_orders')->where('id', $id)->update(['status' => 'converted_to_invoice']);
-            $this->redirect(App::baseURL() . '/purchases?po_id=' . $id, 'success', "PO {$po['po_number']} converted to Invoice.");
+        if (!$po) {
+            $this->redirect(App::baseURL() . '/purchase-orders', 'error', 'Purchase Order not found.');
+            return;
         }
-        $this->redirect(App::baseURL() . '/purchase-orders');
+
+        // Check if an invoice was already generated for this PO
+        $existingInvoice = Database::table('purchases')->where('po_id', $id)->first();
+        if ($existingInvoice) {
+            Database::table('purchase_orders')->where('id', $id)->update(['status' => 'converted_to_invoice']);
+            $this->redirect(App::baseURL() . '/purchases', 'info', "PO {$po['po_number']} already has Purchase Invoice {$existingInvoice['invoice_number']}.");
+            return;
+        }
+
+        $poItems = Database::raw("SELECT poi.*, m.name as medicine_name, m.brand_name, m.gst_rate 
+                                  FROM purchase_order_items poi 
+                                  JOIN medicines m ON poi.medicine_id = m.id 
+                                  WHERE poi.po_id = ?", [$id]);
+
+        if (empty($poItems)) {
+            $this->redirect(App::baseURL() . '/purchase-orders', 'error', 'This Purchase Order has no items to convert.');
+            return;
+        }
+
+        $subtotal = 0;
+        $totalTax = 0;
+        $itemsData = [];
+
+        foreach ($poItems as $idx => $poi) {
+            $qty = (int)$poi['quantity'];
+            $rate = (float)$poi['expected_rate'];
+            $gst = (float)($poi['gst_rate'] ?? 12.0);
+
+            $lineBase = $qty * $rate;
+            $lineTax = ($lineBase * $gst) / 100;
+            $lineTotal = $lineBase + $lineTax;
+
+            $subtotal += $lineBase;
+            $totalTax += $lineTax;
+
+            // Generate clean batch number for received stock
+            $cleanPoNum = preg_replace('/[^a-zA-Z0-9]/', '', $po['po_number']);
+            $batchNo = 'B-' . strtoupper(substr($cleanPoNum, -4)) . '-' . str_pad((string)($idx + 1), 2, '0', STR_PAD_LEFT);
+            $mfgDate = date('Y-m-d');
+            $expDate = date('Y-m-d', strtotime('+2 years'));
+            $mrp = $rate > 0 ? round($rate * 1.35, 2) : 100.00;
+            $sellingPrice = $rate > 0 ? round($rate * 1.20, 2) : 90.00;
+
+            $itemsData[] = [
+                'medicine_id'   => (int)$poi['medicine_id'],
+                'batch_number'  => $batchNo,
+                'mfg_date'      => $mfgDate,
+                'expiry_date'   => $expDate,
+                'quantity'      => $qty,
+                'purchase_rate' => $rate,
+                'mrp'           => $mrp,
+                'selling_price' => $sellingPrice,
+                'gst_rate'      => $gst,
+                'cgst_amount'   => $lineTax / 2,
+                'sgst_amount'   => $lineTax / 2,
+                'igst_amount'   => 0,
+                'total_amount'  => $lineTotal
+            ];
+        }
+
+        $grandTotal = $subtotal + $totalTax;
+        $cleanPoSuffix = substr(preg_replace('/[^0-9]/', '', $po['po_number']), -4) ?: rand(1000, 9999);
+        $invNumber = 'PINV-' . date('Ymd') . '-' . $cleanPoSuffix;
+
+        // 1. Insert Purchase Invoice Record
+        $purchaseId = Database::table('purchases')->insert([
+            'invoice_number'  => $invNumber,
+            'po_id'           => $id,
+            'supplier_id'     => (int)$po['supplier_id'],
+            'invoice_date'    => date('Y-m-d'),
+            'subtotal'        => $subtotal,
+            'tax_amount'      => $totalTax,
+            'discount_amount' => 0.00,
+            'grand_total'     => $grandTotal,
+            'paid_amount'     => 0.00,
+            'payment_status'  => 'unpaid',
+            'payment_mode'    => 'credit',
+            'notes'           => "Received & converted from Purchase Order {$po['po_number']}",
+            'created_by'      => $this->getUser()['id'] ?? null,
+            'created_at'      => date('Y-m-d H:i:s')
+        ]);
+
+        // 2. Insert items, create/update stock batches, and record stock movements
+        foreach ($itemsData as $item) {
+            $existingBatch = Database::table('batches')
+                ->where('medicine_id', $item['medicine_id'])
+                ->where('batch_number', $item['batch_number'])
+                ->first();
+
+            if ($existingBatch) {
+                $batchId = $existingBatch['id'];
+                $newQty = $existingBatch['quantity'] + $item['quantity'];
+                Database::table('batches')->where('id', $batchId)->update([
+                    'quantity'       => $newQty,
+                    'purchase_price' => $item['purchase_rate'],
+                    'mrp'            => $item['mrp'],
+                    'selling_price'  => $item['selling_price'],
+                    'status'         => 'active',
+                    'updated_at'     => date('Y-m-d H:i:s')
+                ]);
+            } else {
+                $batchId = Database::table('batches')->insert([
+                    'medicine_id'      => $item['medicine_id'],
+                    'batch_number'     => $item['batch_number'],
+                    'mfg_date'         => $item['mfg_date'],
+                    'expiry_date'      => $item['expiry_date'],
+                    'quantity'         => $item['quantity'],
+                    'initial_quantity' => $item['quantity'],
+                    'purchase_price'   => $item['purchase_rate'],
+                    'selling_price'    => $item['selling_price'],
+                    'mrp'              => $item['mrp'],
+                    'barcode'          => '890' . rand(100000000, 999999999),
+                    'status'           => 'active',
+                    'created_at'       => date('Y-m-d H:i:s')
+                ]);
+            }
+
+            Database::table('purchase_items')->insert([
+                'purchase_id'      => $purchaseId,
+                'medicine_id'      => $item['medicine_id'],
+                'batch_id'         => $batchId,
+                'batch_number'     => $item['batch_number'],
+                'mfg_date'         => $item['mfg_date'],
+                'expiry_date'      => $item['expiry_date'],
+                'quantity'         => $item['quantity'],
+                'purchase_rate'    => $item['purchase_rate'],
+                'mrp'              => $item['mrp'],
+                'selling_price'    => $item['selling_price'],
+                'gst_rate'         => $item['gst_rate'],
+                'cgst_amount'      => $item['cgst_amount'],
+                'sgst_amount'      => $item['sgst_amount'],
+                'igst_amount'      => 0,
+                'total_amount'     => $item['total_amount']
+            ]);
+
+            // Track stock movement
+            try {
+                Database::table('stock_movements')->insert([
+                    'medicine_id'    => $item['medicine_id'],
+                    'batch_id'       => $batchId,
+                    'movement_type'  => 'purchase',
+                    'quantity'       => $item['quantity'],
+                    'previous_qty'   => $existingBatch ? $existingBatch['quantity'] : 0,
+                    'new_qty'        => ($existingBatch ? $existingBatch['quantity'] : 0) + $item['quantity'],
+                    'reference_type' => 'purchase_invoice',
+                    'reference_id'   => $purchaseId,
+                    'user_id'        => $this->getUser()['id'] ?? null,
+                    'notes'          => "Inwarded via PO {$po['po_number']}",
+                    'created_at'     => date('Y-m-d H:i:s')
+                ]);
+            } catch (\Throwable $e) {}
+        }
+
+        // Update supplier dues balance
+        try {
+            Database::raw("UPDATE suppliers SET current_balance = current_balance + ? WHERE id = ?", [$grandTotal, (int)$po['supplier_id']]);
+        } catch (\Throwable $e) {}
+
+        // 3. Mark PO as converted_to_invoice
+        Database::table('purchase_orders')->where('id', $id)->update(['status' => 'converted_to_invoice']);
+
+        $this->logAudit('convert_po', 'purchase_orders', $id, "Converted PO {$po['po_number']} to Purchase Invoice {$invNumber}");
+
+        $this->redirect(App::baseURL() . '/purchases', 'success', "PO {$po['po_number']} successfully approved and converted to Purchase Invoice {$invNumber}! Stock added to inventory.");
     }
 }

@@ -45,6 +45,11 @@
                                     <span class="nav-badge badge-success">Approved</span>
                                 <?php elseif ($po['status'] === 'converted_to_invoice'): ?>
                                     <span class="nav-badge badge-info">Converted to Invoice</span>
+                                    <?php if (!empty($po['purchase_invoice_number'])): ?>
+                                        <div style="font-size:11px;margin-top:2px;">
+                                            <a href="<?= $baseURL ?>/purchases" style="color:var(--primary);font-weight:600;text-decoration:none;">Inv: <?= htmlspecialchars($po['purchase_invoice_number']) ?></a>
+                                        </div>
+                                    <?php endif; ?>
                                 <?php elseif ($po['status'] === 'pending_approval'): ?>
                                     <span class="nav-badge badge-warning">Pending Approval</span>
                                 <?php else: ?>
@@ -53,16 +58,32 @@
                             </td>
                             <td><?= htmlspecialchars($po['created_by_name'] ?? 'Staff') ?></td>
                             <td>
-                                <div style="display:flex;gap:4px;">
+                                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                                     <?php if ($po['status'] === 'pending_approval'): ?>
                                         <form method="POST" action="<?= $baseURL ?>/purchase-orders/approve/<?= $po['id'] ?>" style="display:inline;">
-                                            <button type="submit" class="btn btn-sm btn-success" title="Approve Purchase Order">✓ Approve</button>
+                                            <input type="hidden" name="action" value="approve_and_convert">
+                                            <button type="submit" class="btn btn-sm btn-success" title="Approve PO and immediately generate Purchase Invoice">✓ Approve & Invoice</button>
+                                        </form>
+                                        <form method="POST" action="<?= $baseURL ?>/purchase-orders/approve/<?= $po['id'] ?>" style="display:inline;">
+                                            <input type="hidden" name="action" value="only_approve">
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary" title="Approve only without invoice generation" style="padding:2px 6px;font-size:11px;">Approve Only</button>
                                         </form>
                                     <?php endif; ?>
                                     <?php if ($po['status'] === 'approved'): ?>
                                         <form method="POST" action="<?= $baseURL ?>/purchase-orders/convert/<?= $po['id'] ?>" style="display:inline;">
-                                            <button type="submit" class="btn btn-sm btn-primary" title="Convert to Purchase Invoice">📥 Receive / Invoice</button>
+                                            <button type="submit" class="btn btn-sm btn-primary" title="Receive stock and create Purchase Invoice">📥 Receive / Invoice</button>
                                         </form>
+                                    <?php endif; ?>
+                                    <?php if ($po['status'] === 'converted_to_invoice'): ?>
+                                        <?php if (!empty($po['purchase_invoice_number'])): ?>
+                                            <a href="<?= $baseURL ?>/purchases" class="btn btn-sm btn-outline-primary" style="display:inline-flex;align-items:center;gap:4px;" title="View in Purchase Invoices">
+                                                🧾 <?= htmlspecialchars($po['purchase_invoice_number']) ?>
+                                            </a>
+                                        <?php else: ?>
+                                            <form method="POST" action="<?= $baseURL ?>/purchase-orders/convert/<?= $po['id'] ?>" style="display:inline;">
+                                                <button type="submit" class="btn btn-sm btn-warning" title="Generate Missing Purchase Invoice">📥 Generate Invoice</button>
+                                            </form>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </div>
                             </td>

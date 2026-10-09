@@ -11,11 +11,13 @@ class PurchasesController extends Controller
     {
         $this->requireAuth();
 
-        $purchases = Database::raw("SELECT p.*, s.company_name as supplier_name, s.phone as supplier_phone, u.full_name as created_by_name
+        $purchases = Database::raw("SELECT p.*, s.company_name as supplier_name, s.phone as supplier_phone, u.full_name as created_by_name,
+                                           po.po_number
                                    FROM purchases p
                                    JOIN suppliers s ON p.supplier_id = s.id
                                    LEFT JOIN users u ON p.created_by = u.id
-                                   ORDER BY p.invoice_date DESC");
+                                   LEFT JOIN purchase_orders po ON p.po_id = po.id
+                                   ORDER BY p.invoice_date DESC, p.id DESC");
 
         $suppliers = Database::table('suppliers')->where('is_active', 1)->get();
         $medicines = Database::table('medicines')->where('is_active', 1)->orderBy('name', 'ASC')->get();

@@ -40,6 +40,11 @@
                         <tr>
                             <td>
                                 <strong style="color:var(--primary);"><?= htmlspecialchars($p['invoice_number']) ?></strong>
+                                <?php if (!empty($p['po_number'])): ?>
+                                    <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+                                        <a href="<?= $baseURL ?>/purchase-orders" style="color:var(--primary);text-decoration:none;" title="Linked Purchase Order">📦 <?= htmlspecialchars($p['po_number']) ?></a>
+                                    </div>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <strong><?= htmlspecialchars($p['supplier_name']) ?></strong>
