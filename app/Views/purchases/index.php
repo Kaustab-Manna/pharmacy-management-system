@@ -72,7 +72,7 @@
                                 <?php 
                                 $due = max(0, (float)$p['grand_total'] - (float)$p['paid_amount']); 
                                 ?>
-                                <?php if ($p['payment_status'] !== 'paid' && $due > 0): ?>
+                                <?php if ($p['payment_status'] !== 'paid'): ?>
                                     <button type="button" class="btn btn-sm btn-primary" onclick="openPaymentModal(<?= $p['id'] ?>, '<?= htmlspecialchars($p['invoice_number'], ENT_QUOTES) ?>', '<?= htmlspecialchars($p['supplier_name'], ENT_QUOTES) ?>', <?= $due ?>)" title="Record payment for this bill" style="padding:4px 9px;font-size:12px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;">
                                         💳 Pay Bill
                                     </button>
@@ -252,9 +252,14 @@ function openPaymentModal(invoiceId, invoiceNo, supplierName, dueAmount) {
     document.getElementById('payInvoiceForm').action = '<?= $baseURL ?>/purchases/pay/' + invoiceId;
     document.getElementById('modalSupplierName').textContent = supplierName;
     document.getElementById('modalInvoiceNo').textContent = invoiceNo;
-    document.getElementById('modalDueAmount').textContent = '<?= $pharmacy['currency_symbol'] ?>' + parseFloat(dueAmount).toFixed(2);
-    document.getElementById('payAmountInput').value = parseFloat(dueAmount).toFixed(2);
-    document.getElementById('payAmountInput').max = parseFloat(dueAmount).toFixed(2);
+    var due = parseFloat(dueAmount) || 0;
+    document.getElementById('modalDueAmount').textContent = '<?= $pharmacy['currency_symbol'] ?>' + due.toFixed(2);
+    document.getElementById('payAmountInput').value = due > 0 ? due.toFixed(2) : '100.00';
+    if (due > 0) {
+        document.getElementById('payAmountInput').max = due.toFixed(2);
+    } else {
+        document.getElementById('payAmountInput').removeAttribute('max');
+    }
     openModal('payInvoiceModal');
 }
 

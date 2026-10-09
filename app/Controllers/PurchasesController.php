@@ -270,8 +270,14 @@ class PurchasesController extends Controller
 
         $currentPaid = (float)($purchase['paid_amount'] ?? 0);
         $grandTotal = (float)($purchase['grand_total'] ?? 0);
-        $due = max(0, $grandTotal - $currentPaid);
-        $payAmount = min($amount, $due);
+        if ($grandTotal > 0) {
+            $due = max(0, $grandTotal - $currentPaid);
+            $payAmount = min($amount, $due);
+        } else {
+            $payAmount = $amount;
+            $grandTotal = $amount;
+            Database::table('purchases')->where('id', $id)->update(['grand_total' => $grandTotal, 'subtotal' => $grandTotal]);
+        }
 
         if ($payAmount <= 0) {
             $this->redirect(App::baseURL() . '/purchases', 'info', "Invoice #{$purchase['invoice_number']} is already fully settled.");

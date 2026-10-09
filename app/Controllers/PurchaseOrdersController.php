@@ -58,6 +58,16 @@ class PurchaseOrdersController extends Controller
                 if (!empty($medIds[$i]) && !empty($quantities[$i])) {
                     $qty = (int)$quantities[$i];
                     $rate = (float)($rates[$i] ?? 0);
+                    if ($rate <= 0) {
+                        $batchPrev = Database::raw("SELECT purchase_price, mrp FROM batches WHERE medicine_id = ? AND (purchase_price > 0 OR mrp > 0) ORDER BY id DESC LIMIT 1", [(int)$medIds[$i]]);
+                        if (!empty($batchPrev) && (float)$batchPrev[0]['purchase_price'] > 0) {
+                            $rate = (float)$batchPrev[0]['purchase_price'];
+                        } elseif (!empty($batchPrev) && (float)$batchPrev[0]['mrp'] > 0) {
+                            $rate = round((float)$batchPrev[0]['mrp'] * 0.70, 2);
+                        } else {
+                            $rate = 60.00;
+                        }
+                    }
                     $lineTotal = $qty * $rate;
                     $totalAmount += $lineTotal;
 
@@ -155,6 +165,16 @@ class PurchaseOrdersController extends Controller
         foreach ($poItems as $idx => $poi) {
             $qty = (int)$poi['quantity'];
             $rate = (float)$poi['expected_rate'];
+            if ($rate <= 0) {
+                $batchPrev = Database::raw("SELECT purchase_price, mrp FROM batches WHERE medicine_id = ? AND (purchase_price > 0 OR mrp > 0) ORDER BY id DESC LIMIT 1", [(int)$poi['medicine_id']]);
+                if (!empty($batchPrev) && (float)$batchPrev[0]['purchase_price'] > 0) {
+                    $rate = (float)$batchPrev[0]['purchase_price'];
+                } elseif (!empty($batchPrev) && (float)$batchPrev[0]['mrp'] > 0) {
+                    $rate = round((float)$batchPrev[0]['mrp'] * 0.70, 2);
+                } else {
+                    $rate = 60.00;
+                }
+            }
             $gst = (float)($poi['gst_rate'] ?? 12.0);
 
             $lineBase = $qty * $rate;
