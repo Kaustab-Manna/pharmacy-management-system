@@ -357,6 +357,9 @@ var posCart = [];
 var currentPaymentMode = 'cash';
 var activePrescriptionId = null;
 var lastSaleResponse = null;
+var currentDiscountType = 'percent';
+var currentBillDiscountValue = 0;
+var currentBillDiscountAmount = 0;
 
 // Search live filter
 document.getElementById('posSearchInput').addEventListener('input', function(e) {
@@ -441,8 +444,11 @@ function removeCartItem(index) {
 
 function renderCart() {
     var list = document.getElementById('cartItemsList');
+    if (!list) return;
+
     if (posCart.length === 0) {
         list.innerHTML = '<div id="emptyCartMessage" style="text-align:center;color:var(--text-muted);padding:3rem 1rem;"><div style="font-size:2rem;margin-bottom:0.5rem;">🛒</div><div>Cart is empty</div><div style="font-size:11px;">Scan barcode or click medicines on left to bill</div></div>';
+        currentBillDiscountAmount = 0;
         updateTotals(0, 0, 0, 0);
         return;
     }
@@ -450,17 +456,22 @@ function renderCart() {
     var html = '';
     var subtotal = 0;
     var totalTax = 0;
-    var totalDiscount = 0;
+    var itemDiscount = 0;
 
     posCart.forEach(function(item, idx) {
-        var lineBase = item.unit_price * item.quantity;
-        var lineDisc = (lineBase * item.discount_percent) / 100;
+        var qty = parseFloat(item.quantity) || 1;
+        var unitPrice = parseFloat(item.unit_price) || 0;
+        var discPct = parseFloat(item.discount_percent) || 0;
+        var gstRate = parseFloat(item.gst_rate) || 0;
+
+        var lineBase = unitPrice * qty;
+        var lineDisc = (lineBase * discPct) / 100;
         var lineNet = lineBase - lineDisc;
-        var lineTax = (lineNet * item.gst_rate) / 100;
+        var lineTax = (lineNet * gstRate) / 100;
         var lineTotal = lineNet + lineTax;
 
         subtotal += lineBase;
-        totalDiscount += lineDisc;
+        itemDiscount += lineDisc;
         totalTax += lineTax;
 
         html += '<div class="cart-item-row">' +
@@ -472,10 +483,10 @@ function renderCart() {
                 '</div>' +
                 '<div style="display:flex;align-items:center;gap:4px;">' +
                     '<button class="btn btn-sm btn-secondary" style="padding:1px 6px;" onclick="updateCartQty(' + idx + ', -1)">-</button>' +
-                    '<strong>' + item.quantity + '</strong>' +
+                    '<strong>' + qty + '</strong>' +
                     '<button class="btn btn-sm btn-secondary" style="padding:1px 6px;" onclick="updateCartQty(' + idx + ', 1)">+</button>' +
                 '</div>' +
-                '<div><?= $pharmacy['currency_symbol'] ?>' + item.unit_price.toFixed(2) + '</div>' +
+                '<div><?= $pharmacy['currency_symbol'] ?>' + unitPrice.toFixed(2) + '</div>' +
                 '<div><strong><?= $pharmacy['currency_symbol'] ?>' + lineTotal.toFixed(2) + '</strong></div>' +
                 '<div><button class="btn btn-sm btn-danger" style="padding:1px 5px;" onclick="removeCartItem(' + idx + ')">&times;</button></div>' +
                 '</div>';
@@ -484,33 +495,34 @@ function renderCart() {
     list.innerHTML = html;
 
     // Calculate bill discount
+    var billDisc = 0;
+    var enteredVal = parseFloat(currentBillDiscountValue) || 0;
     if (currentDiscountType === 'percent') {
-        currentBillDiscountAmount = (subtotal * currentBillDiscountValue) / 100;
+        billDisc = (subtotal * enteredVal) / 100;
     } else {
-        currentBillDiscountAmount = currentBillDiscountValue;
+        billDisc = enteredVal;
     }
-    currentBillDiscountAmount = Math.min(currentBillDiscountAmount, subtotal);
+    billDisc = Math.max(0, Math.min(billDisc, subtotal));
+    currentBillDiscountAmount = billDisc;
 
-    var totalDiscount = totalItemDiscount + currentBillDiscountAmount;
+    var totalDiscount = itemDiscount + billDisc;
     var grandTotal = Math.max(0, Math.round(subtotal - totalDiscount + totalTax));
     updateTotals(subtotal, totalTax, totalDiscount, grandTotal);
 }
 
 function updateTotals(subtotal, tax, discount, grandTotal) {
-    document.getElementById('summarySubtotal').innerText = '<?= $pharmacy['currency_symbol'] ?>' + subtotal.toFixed(2);
-    document.getElementById('summaryTax').innerText = '<?= $pharmacy['currency_symbol'] ?>' + tax.toFixed(2);
-    document.getElementById('summaryDiscount').innerText = '- <?= $pharmacy['currency_symbol'] ?>' + discount.toFixed(2);
-    document.getElementById('summaryGrandTotal').innerText = '<?= $pharmacy['currency_symbol'] ?>' + grandTotal.toFixed(2);
-    
+    var subEl = document.getElementById('summarySubtotal');
+    var taxEl = document.getElementById('summaryTax');
+    var discEl = document.getElementById('summaryDiscount');
+    var gtEl = document.getElementById('summaryGrandTotal');
     var paidInput = document.getElementById('paidAmount');
-    if (paidInput) {
-        paidInput.value = grandTotal;
-    }
-}
 
-var currentDiscountType = 'percent'; // 'percent' or 'flat'
-var currentBillDiscountValue = 0;
-var currentBillDiscountAmount = 0;
+    if (subEl) subEl.innerText = '<?= $pharmacy['currency_symbol'] ?>' + subtotal.toFixed(2);
+    if (taxEl) taxEl.innerText = '<?= $pharmacy['currency_symbol'] ?>' + tax.toFixed(2);
+    if (discEl) discEl.innerText = '- <?= $pharmacy['currency_symbol'] ?>' + discount.toFixed(2);
+    if (gtEl) gtEl.innerText = '<?= $pharmacy['currency_symbol'] ?>' + grandTotal.toFixed(2);
+    if (paidInput) paidInput.value = grandTotal;
+}
 
 function setDiscountType(type) {
     currentDiscountType = type;
