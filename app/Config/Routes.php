@@ -114,6 +114,7 @@ $router->get('/purchases/create', 'PurchasesController@create');
 $router->get('/purchases_create', 'PurchasesController@create');
 $router->post('/purchases/create', 'PurchasesController@create');
 $router->post('/purchases_create', 'PurchasesController@create');
+$router->post('/purchases/pay/(:num)', 'PurchasesController@recordPayment');
 
 // Module 15: Purchase Orders (PO)
 $router->get('/purchase-orders', 'PurchaseOrdersController@index');

@@ -30,11 +30,12 @@
                     <th>Paid Amount</th>
                     <th>Status</th>
                     <th>Mode</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($purchases)): ?>
-                    <tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted);">No purchase records found.</td></tr>
+                    <tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text-muted);">No purchase records found.</td></tr>
                 <?php else: ?>
                     <?php foreach ($purchases as $p): ?>
                         <tr>
@@ -66,6 +67,18 @@
                             </td>
                             <td>
                                 <span class="nav-badge badge-secondary" style="text-transform:uppercase;"><?= htmlspecialchars($p['payment_mode']) ?></span>
+                            </td>
+                            <td>
+                                <?php 
+                                $due = max(0, (float)$p['grand_total'] - (float)$p['paid_amount']); 
+                                ?>
+                                <?php if ($p['payment_status'] !== 'paid' && $due > 0): ?>
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="openPaymentModal(<?= $p['id'] ?>, '<?= htmlspecialchars($p['invoice_number'], ENT_QUOTES) ?>', '<?= htmlspecialchars($p['supplier_name'], ENT_QUOTES) ?>', <?= $due ?>)" title="Record payment for this bill" style="padding:4px 9px;font-size:12px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;">
+                                        💳 Pay Bill
+                                    </button>
+                                <?php else: ?>
+                                    <span class="nav-badge badge-success" style="font-size:11px;">✓ Settled</span>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -172,7 +185,79 @@
     </div>
 </div>
 
+<!-- Modal: Pay Purchase Invoice -->
+<div id="payInvoiceModal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 class="modal-title">💳 Record Supplier Payment</h3>
+            <button class="modal-close" onclick="closeModal('payInvoiceModal')">&times;</button>
+        </div>
+        <form id="payInvoiceForm" method="POST" action="">
+            <div class="modal-body">
+                <div style="background:var(--bg-body);border:1px solid var(--border-color);border-radius:8px;padding:12px;margin-bottom:1rem;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                        <span style="color:var(--text-muted);font-size:12px;">Distributor / Supplier:</span>
+                        <strong id="modalSupplierName" style="color:var(--text-main);font-size:13px;">-</strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                        <span style="color:var(--text-muted);font-size:12px;">Invoice Number:</span>
+                        <strong id="modalInvoiceNo" style="color:var(--primary);font-size:13px;">-</strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border-color);padding-top:6px;">
+                        <span style="color:var(--text-muted);font-size:12px;">Outstanding Due:</span>
+                        <strong id="modalDueAmount" style="color:#ef4444;font-size:14px;">-</strong>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Payment Amount (<?= $pharmacy['currency_symbol'] ?>) *</label>
+                    <input type="number" step="0.01" min="0.01" id="payAmountInput" name="amount" class="form-control" placeholder="0.00" required>
+                    <small style="color:var(--text-muted);font-size:11px;">You can pay the full amount or enter a partial amount.</small>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label class="form-label">Payment Mode *</label>
+                        <select name="payment_mode" class="form-control" required>
+                            <option value="bank_transfer">Bank Transfer / NEFT / IMPS</option>
+                            <option value="upi">UPI / QR Code</option>
+                            <option value="cash">Cash</option>
+                            <option value="card">Debit / Credit Card</option>
+                            <option value="cheque">Cheque</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label class="form-label">Ref # / UTR / Cheque #</label>
+                        <input type="text" name="reference_no" class="form-control" placeholder="e.g. UTR-88129">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top:0.75rem;">
+                    <label class="form-label">Payment Remarks</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Cleared via current account, receipt attached"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('payInvoiceModal')">Cancel</button>
+                <button type="submit" class="btn btn-success" style="display:inline-flex;align-items:center;gap:6px;">
+                    <span>✓</span> Record Payment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+function openPaymentModal(invoiceId, invoiceNo, supplierName, dueAmount) {
+    document.getElementById('payInvoiceForm').action = '<?= $baseURL ?>/purchases/pay/' + invoiceId;
+    document.getElementById('modalSupplierName').textContent = supplierName;
+    document.getElementById('modalInvoiceNo').textContent = invoiceNo;
+    document.getElementById('modalDueAmount').textContent = '<?= $pharmacy['currency_symbol'] ?>' + parseFloat(dueAmount).toFixed(2);
+    document.getElementById('payAmountInput').value = parseFloat(dueAmount).toFixed(2);
+    document.getElementById('payAmountInput').max = parseFloat(dueAmount).toFixed(2);
+    openModal('payInvoiceModal');
+}
+
 function addPurchaseRow() {
     var box = document.getElementById('purchaseItemsBox');
     var firstRow = box.querySelector('.purchase-item-row');

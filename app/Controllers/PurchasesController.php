@@ -247,4 +247,69 @@ class PurchasesController extends Controller
             'poItems'      => $poItems
         ]);
     }
+
+    public function recordPayment(int $id): void
+    {
+        $this->checkPermission('purchases', 'create');
+
+        $purchase = Database::table('purchases')->where('id', $id)->first();
+        if (!$purchase) {
+            $this->redirect(App::baseURL() . '/purchases', 'error', 'Purchase invoice not found.');
+            return;
+        }
+
+        $amount = (float)$this->request->post('amount');
+        $paymentMode = $this->request->post('payment_mode', 'cash');
+        $refNo = trim($this->request->post('reference_no', ''));
+        $notes = trim($this->request->post('notes', ''));
+
+        if ($amount <= 0) {
+            $this->redirect(App::baseURL() . '/purchases', 'error', 'Please enter a valid payment amount greater than zero.');
+            return;
+        }
+
+        $currentPaid = (float)($purchase['paid_amount'] ?? 0);
+        $grandTotal = (float)($purchase['grand_total'] ?? 0);
+        $due = max(0, $grandTotal - $currentPaid);
+        $payAmount = min($amount, $due);
+
+        if ($payAmount <= 0) {
+            $this->redirect(App::baseURL() . '/purchases', 'info', "Invoice #{$purchase['invoice_number']} is already fully settled.");
+            return;
+        }
+
+        $newPaid = $currentPaid + $payAmount;
+        $newStatus = ($newPaid >= ($grandTotal - 0.01)) ? 'paid' : 'partial';
+
+        // Update purchase record
+        Database::table('purchases')->where('id', $id)->update([
+            'paid_amount'    => $newPaid,
+            'payment_status' => $newStatus,
+            'payment_mode'   => $paymentMode
+        ]);
+
+        // Reduce supplier dues balance
+        Database::raw("UPDATE suppliers SET current_balance = MAX(0, current_balance - ?) WHERE id = ?", [$payAmount, (int)$purchase['supplier_id']]);
+
+        // Record financial transaction
+        $supplier = Database::table('suppliers')->where('id', $purchase['supplier_id'])->first();
+        $supplierName = $supplier['company_name'] ?? ('Supplier #' . $purchase['supplier_id']);
+
+        Database::table('financial_transactions')->insert([
+            'trans_code'     => 'PMT-' . time(),
+            'trans_type'     => 'supplier_payment',
+            'entity_type'    => 'supplier',
+            'entity_id'      => (int)$purchase['supplier_id'],
+            'entity_name'    => $supplierName,
+            'amount'         => $payAmount,
+            'payment_mode'   => $paymentMode,
+            'trans_date'     => date('Y-m-d'),
+            'description'    => "Payment for Invoice #{$purchase['invoice_number']}" . ($refNo ? " (Ref: {$refNo})" : "") . ($notes ? " - {$notes}" : ""),
+            'created_by'     => $this->getUser()['id'] ?? null,
+            'created_at'     => date('Y-m-d H:i:s')
+        ]);
+
+        $this->logAudit('pay_purchase_invoice', 'purchases', $id, "Recorded payment of ₹{$payAmount} for invoice {$purchase['invoice_number']}");
+        $this->redirect(App::baseURL() . '/purchases', 'success', "Payment of ₹" . number_format($payAmount, 2) . " successfully recorded for Invoice #{$purchase['invoice_number']}! Supplier balance updated.");
+    }
 }
