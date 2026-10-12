@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Purchase Return Management (Module 16)</h1>
+        <h1>Purchase Return Management</h1>
         <p>Return damaged, recalled, or expired medicines to suppliers with automatic inventory and ledger adjustment.</p>
     </div>
     <div class="page-actions">

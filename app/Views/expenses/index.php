@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Expense Management (Module 27)</h1>
+        <h1>Expense Management</h1>
         <p>Track store operational expenses including shop rent, electricity, salaries, equipment servicing, and bills.</p>
     </div>
     <div class="page-actions">

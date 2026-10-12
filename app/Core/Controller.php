@@ -141,6 +141,12 @@ abstract class Controller
 
     protected function render(string $viewPath, array $data = [], bool $withLayout = true): void
     {
+        if ($withLayout && !$this->isLoggedIn()) {
+            Session::setFlash('error', 'Please log in to access the system.');
+            $this->redirect(App::baseURL() . '/login');
+            return;
+        }
+
         // Extract data variables
         extract($data);
 

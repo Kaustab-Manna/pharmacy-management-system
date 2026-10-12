@@ -3,7 +3,7 @@
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
             <a href="<?= $baseURL ?>/expiry" style="color:var(--text-muted);text-decoration:none;font-size:0.9rem;">&larr; Expiry Management</a>
             <span style="color:var(--text-muted);">&bull;</span>
-            <span style="color:var(--primary);font-size:0.9rem;font-weight:600;">Module 16: Supplier Returns</span>
+            <span style="color:var(--primary);font-size:0.9rem;font-weight:600;">Supplier Returns</span>
         </div>
         <h1>↩️ Process Return to Supplier & Debit Note</h1>
         <p>Return expired, near-expiry, or damaged stock to distributors. Deducts inventory immediately and generates a supplier credit debit note.</p>

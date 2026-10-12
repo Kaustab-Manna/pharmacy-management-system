@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Role-Based Access Control (RBAC) & Security (Module 36)</h1>
+        <h1>Role-Based Access Control (RBAC) & Security</h1>
         <p>Configure granular permissions for every staff role across all 37 modules and download database disaster recovery backups.</p>
     </div>
     <div class="page-actions">

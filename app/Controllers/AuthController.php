@@ -17,38 +17,10 @@ class AuthController extends Controller
         if ($this->request->isPost()) {
             $username = trim($this->request->post('username', ''));
             $password = trim($this->request->post('password', ''));
-            $quickRole = $this->request->post('quick_role');
 
-            // Handle Quick 1-Click Role Login for instant testing of all 9 roles
-            if ($quickRole) {
-                $user = Database::table('users')->where('role', $quickRole)->first();
-                if (!$user) {
-                    $altRole = str_replace('_', '', $quickRole);
-                    $user = Database::table('users')->where('role', $altRole)->first();
-                }
-                if (!$user) {
-                    $roleAliases = [
-                        'super_admin'       => 'superadmin',
-                        'pharmacy_admin'    => 'admin',
-                        'store_manager'     => 'store',
-                        'purchase_manager'  => 'purchase',
-                        'billing_executive' => 'billing',
-                        'sales_staff'       => 'sales',
-                    ];
-                    if (isset($roleAliases[$quickRole])) {
-                        $user = Database::table('users')->where('username', $roleAliases[$quickRole])->first();
-                    }
-                }
-
-                if ($user) {
-                    $this->setLoginSession($user);
-                    $this->logAudit('login', 'auth', $user['id'], "Quick login as {$user['role']}");
-                    $this->redirect(App::baseURL() . '/dashboard', 'success', "Welcome, {$user['full_name']} ({$user['role']})!");
-                    return;
-                } else {
-                    $this->render('auth.login', ['error' => "Demo user for '{$quickRole}' not found. Please log in using username: admin, password: admin123"], false);
-                    return;
-                }
+            if (empty($username) || empty($password)) {
+                $this->render('auth.login', ['error' => 'Please enter both your username/email and password.'], false);
+                return;
             }
 
             // Standard Password Login (supports case-insensitive username, email, and normalized aliases)
@@ -68,26 +40,40 @@ class AuthController extends Controller
                 $user = $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
             }
 
-            // 3. Role alias fallback (maps title to user, e.g. superadmin <=> super_admin, store <=> store_manager)
+            // 3. Role alias fallback (maps title, abbreviation, or common typo to user)
             if (!$user) {
                 $roleMap = [
                     'superadmin'        => ['superadmin', 'super_admin'],
                     'super_admin'       => ['superadmin', 'super_admin'],
+                    'super'             => ['superadmin', 'super_admin'],
                     'admin'             => ['admin', 'pharmacy_admin'],
                     'pharmacy_admin'    => ['admin', 'pharmacy_admin'],
                     'pharmacist'        => ['pharmacist'],
                     'store'             => ['store', 'store_manager'],
                     'store_manager'     => ['store', 'store_manager'],
+                    'store_mgr'         => ['store', 'store_manager'],
+                    'storemgr'          => ['store', 'store_manager'],
+                    'stock'             => ['store', 'store_manager'],
+                    'stock_manager'     => ['store', 'store_manager'],
                     'purchase'          => ['purchase', 'purchase_manager'],
                     'purchase_manager'  => ['purchase', 'purchase_manager'],
+                    'purchase_mgr'      => ['purchase', 'purchase_manager'],
+                    'purchasemgr'       => ['purchase', 'purchase_manager'],
                     'billing'           => ['billing', 'billing_executive'],
                     'billing_executive' => ['billing', 'billing_executive'],
+                    'billing_exec'      => ['billing', 'billing_executive'],
+                    'billingexec'       => ['billing', 'billing_executive'],
+                    'billing_exc'       => ['billing', 'billing_executive'],
                     'cashier'           => ['cashier'],
+                    'casheir'           => ['cashier'],
                     'accountant'        => ['accountant'],
+                    'accountent'        => ['accountant'],
+                    'accoutent'         => ['accountant'],
                     'sales'             => ['sales', 'sales_staff'],
                     'sales_staff'       => ['sales', 'sales_staff'],
+                    'salesstaff'        => ['sales', 'sales_staff'],
                 ];
-                $normKey = strtolower(str_replace([' ', '-'], '_', $identifier));
+                $normKey = strtolower(str_replace([' ', '-', '.'], '_', $identifier));
                 if (isset($roleMap[$normKey])) {
                     foreach ($roleMap[$normKey] as $candidate) {
                         $stmt = $pdo->prepare("SELECT * FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(role) = LOWER(?) LIMIT 1");
@@ -109,7 +95,7 @@ class AuthController extends Controller
                 $this->redirect(App::baseURL() . '/dashboard', 'success', "Welcome back, {$user['full_name']}!");
                 return;
             } else {
-                $this->render('auth.login', ['error' => 'Invalid username or password (default password is: admin123)'], false);
+                $this->render('auth.login', ['error' => 'Invalid username or password. (Default demo password is: admin123)'], false);
                 return;
             }
         }

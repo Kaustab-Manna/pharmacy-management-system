@@ -23,7 +23,7 @@ class PurchaseReturnsController extends Controller
                                   WHERE b.quantity > 0 ORDER BY b.expiry_date ASC");
 
         $this->render('purchase_returns.index', [
-            'pageTitle'    => 'Purchase Return Management (Module 16) - INFOSOF',
+            'pageTitle'    => 'Purchase Return Management - INFOSOF',
             'activeModule' => 'purchase_returns',
             'returns'      => $returns,
             'suppliers'    => $suppliers,

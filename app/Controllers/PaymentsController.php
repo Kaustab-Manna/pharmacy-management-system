@@ -24,7 +24,7 @@ class PaymentsController extends Controller
         $netCashInDrawer = (float)$cashSales - (float)$todayExpenses;
 
         $this->render('accounts.payments', [
-            'pageTitle'       => 'Payment Register & Cash Drawer (Module 25) - INFOSOF',
+            'pageTitle'       => 'Payment Register & Cash Drawer - INFOSOF',
             'activeModule'    => 'payments',
             'transactions'    => $transactions,
             'cashSales'       => $cashSales,

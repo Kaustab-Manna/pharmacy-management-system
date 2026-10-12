@@ -353,5 +353,13 @@ $isAdminOpen = in_array($cur, $adminModules);
                 </div>
             </div>
         <?php endif; ?>
+
+        <!-- Sidebar Footer: Direct Log Out Button -->
+        <div style="padding: 1rem 0.5rem 0.5rem; margin-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.08);">
+            <a href="<?= $baseURL ?>/logout" class="nav-item" style="color: #f87171; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; font-weight: 600; text-decoration: none;">
+                <span class="nav-icon">🚪</span>
+                <span>Log Out</span>
+            </a>
+        </div>
     </div>
 </aside>

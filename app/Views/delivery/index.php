@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Delivery Management & Dispatch Desk (Module 32)</h1>
+        <h1>Delivery Management & Dispatch Desk</h1>
         <p>Assign home delivery orders to riders, track real-time fulfillment status, and monitor courier delivery charges.</p>
     </div>
     <div class="page-actions">

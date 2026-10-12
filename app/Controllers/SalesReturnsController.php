@@ -21,7 +21,7 @@ class SalesReturnsController extends Controller
         $recentSales = Database::table('sales')->orderBy('sale_date', 'DESC')->limit(30)->get();
 
         $this->render('sales_returns.index', [
-            'pageTitle'    => 'Sales Returns & Credit Notes (Module 19) - INFOSOF',
+            'pageTitle'    => 'Sales Returns & Credit Notes - INFOSOF',
             'activeModule' => 'sales_returns',
             'returns'      => $returns,
             'recentSales'  => $recentSales

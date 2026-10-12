@@ -29,15 +29,21 @@ Open your browser and navigate to:
 
 ## 🔑 Default Login Credentials
 
-| Role | Username | Password | Notes |
+All demo accounts use default password: `admin123`
+
+| Role | Username / Identifier | Password | Access Highlights |
 |---|---|---|---|
-| **Super Administrator** | `admin` | `admin123` | Full system access to all 37 modules |
+| **Super Administrator** | `superadmin` | `admin123` | System Super Admin, all modules |
+| **Pharmacy Admin** | `admin` | `admin123` | Full admin privileges |
 | **Pharmacist** | `pharmacist` | `admin123` | Rx dispensing, POS counter & medicines |
 | **Cashier** | `cashier` | `admin123` | Fast counter billing & payment drawer |
-| **Stock Manager** | `stock` | `admin123` | Batches, expiry & inventory management |
-| **Accountant** | `accountant` | `admin123` | GSTR-1, GSTR-2, ledgers & expenses |
+| **Store Manager** | `store` (or `store_manager`) | `admin123` | Batches, expiry, stock & inventory |
+| **Purchase Manager** | `purchase` (or `purchase_manager`) | `admin123` | Suppliers, POs & purchase bills |
+| **Billing Executive** | `billing` (or `billing_executive`) | `admin123` | POS counter, billing & invoice management |
+| **Accountant** | `accountant` | `admin123` | Ledgers, expenses, GST & reports |
+| **Sales Staff** | `sales` (or `sales_staff`) | `admin123` | Counter sales & customer loyalty |
 
-> 💡 **Quick Test Tip:** On the login page (`/login`), click on **any 1-Click Fast Login badge** at the bottom to sign in as that role instantly without typing!
+> 🔒 **Security Note:** All accounts require entering a valid username/email and password to authenticate. Demo bypass buttons have been removed.
 
 ---
 

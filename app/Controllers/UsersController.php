@@ -14,7 +14,7 @@ class UsersController extends Controller
         $users = Database::table('users')->orderBy('id', 'ASC')->get();
 
         $this->render('users.index', [
-            'pageTitle'    => 'User & Role Management (Module 1) - INFOSOF',
+            'pageTitle'    => 'User & Role Management - INFOSOF',
             'activeModule' => 'users',
             'users'        => $users
         ]);

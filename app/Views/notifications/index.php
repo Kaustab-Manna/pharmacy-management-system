@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Notifications & Alert System (Module 29)</h1>
+        <h1>Notifications & Alert System</h1>
         <p>Real-time automated warnings for low stocks, expired batches, near-expiry items, and pending prescriptions.</p>
     </div>
     <div class="page-actions">

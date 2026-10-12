@@ -3,7 +3,7 @@
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
             <a href="<?= $baseURL ?>/purchases" style="color:var(--text-muted);text-decoration:none;font-size:0.9rem;">&larr; Purchases</a>
             <span style="color:var(--text-muted);">&bull;</span>
-            <span style="color:var(--primary);font-size:0.9rem;font-weight:600;">Module 14</span>
+            <span style="color:var(--primary);font-size:0.9rem;font-weight:600;">Stock Inward</span>
         </div>
         <h1>📥 New Purchase Invoice & Stock Inwarding</h1>
         <p>Record supplier invoices, create verified medicine batches, compute GST input tax credits, and update live inventory.</p>

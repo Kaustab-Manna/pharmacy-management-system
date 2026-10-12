@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Payment & Accounts Register (Module 25)</h1>
+        <h1>Payment & Accounts Register</h1>
         <p>Live cash drawer reconciliation, transaction ledgers, UPI/Card settlements, and cashier register audit.</p>
     </div>
 </div>

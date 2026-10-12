@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Reports & Business Analytics (Module 33)</h1>
+        <h1>Reports & Business Analytics</h1>
         <p>Daily/monthly sales, gross profit analysis, medicine-wise velocity, and manufacturer reports.</p>
     </div>
     <div class="page-actions">

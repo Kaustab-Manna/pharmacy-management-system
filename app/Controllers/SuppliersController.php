@@ -18,7 +18,7 @@ class SuppliersController extends Controller
                                    ORDER BY s.company_name ASC");
 
         $this->render('suppliers.index', [
-            'pageTitle'    => 'Suppliers & Distributors Management (Module 9) - INFOSOF',
+            'pageTitle'    => 'Suppliers & Distributors Management - INFOSOF',
             'activeModule' => 'suppliers',
             'suppliers'    => $suppliers
         ]);

@@ -53,7 +53,7 @@ class GstController extends Controller
                                     GROUP BY m.hsn_code, si.gst_rate", [$monthStart, $monthEnd]);
 
         $this->render('gst.index', [
-            'pageTitle'          => 'GST & Tax Compliance Center (Module 24) - INFOSOF',
+            'pageTitle'          => 'GST & Tax Compliance Center - INFOSOF',
             'activeModule'       => 'gst',
             'month'              => $month,
             'salesTaxSummary'    => $salesTaxSummary,

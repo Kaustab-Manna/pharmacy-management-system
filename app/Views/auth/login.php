@@ -13,13 +13,13 @@
             justify-content: center;
             background: radial-gradient(circle at 10% 20%, rgba(13, 148, 136, 0.15) 0%, rgba(15, 23, 42, 0.05) 90%), #0f172a;
             padding: 1.5rem;
-            font-family: var(--font-main);
+            font-family: var(--font-main, system-ui, -apple-system, sans-serif);
         }
         .login-card {
             background: #ffffff;
-            border-radius: var(--radius-lg);
+            border-radius: var(--radius-lg, 12px);
             width: 100%;
-            max-width: 480px;
+            max-width: 440px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             padding: 2.25rem;
             position: relative;
@@ -56,41 +56,38 @@
             font-weight: 800;
             color: #0f172a;
             letter-spacing: -0.02em;
+            margin: 0;
         }
         .login-subtitle {
             font-size: 0.85rem;
             color: #64748b;
             margin-top: 0.25rem;
         }
-        .role-switch-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0.5rem;
-            margin-top: 1.5rem;
-            padding-top: 1.25rem;
-            border-top: 1px dashed #e2e8f0;
-        }
-        .btn-role-quick {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            padding: 0.45rem 0.25rem;
-            font-size: 0.72rem;
-            font-weight: 600;
-            color: #475569;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.2s;
+        .password-input-wrap {
+            position: relative;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 2px;
         }
-        .btn-role-quick:hover {
-            background: #f0fdfa;
-            border-color: #0d9488;
-            color: #0f766e;
-            transform: translateY(-1px);
+        .password-input-wrap input {
+            padding-right: 42px;
+            width: 100%;
+        }
+        .toggle-password-btn {
+            position: absolute;
+            right: 10px;
+            background: none;
+            border: none;
+            padding: 4px;
+            cursor: pointer;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: color 0.15s ease;
+        }
+        .toggle-password-btn:hover {
+            color: #0d9488;
         }
     </style>
 </head>
@@ -117,70 +114,54 @@
         </div>
     <?php endif; ?>
 
-    <form method="POST" action="<?= $baseURL ?>/login">
+    <!-- Secure Login Form -->
+    <form method="POST" action="<?= $baseURL ?>/login" id="loginForm">
         <div class="form-group">
             <label class="form-label" for="username">Username / Email</label>
-            <input type="text" id="username" name="username" class="form-control" placeholder="Enter username or email" required value="<?= htmlspecialchars($_POST['username'] ?? 'admin') ?>">
+            <input type="text" id="username" name="username" class="form-control" placeholder="Enter username or email" required autofocus value="<?= htmlspecialchars($_POST['username'] ?? '') ?>">
         </div>
 
         <div class="form-group" style="margin-bottom: 1.5rem;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
                 <label class="form-label" for="password" style="margin-bottom:0;">Password</label>
-                <span style="font-size:0.75rem;color:#0d9488;">Default: admin123</span>
             </div>
-            <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required value="<?= htmlspecialchars($_POST['password'] ?? 'admin123') ?>">
+            <div class="password-input-wrap">
+                <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required value="">
+                <button type="button" class="toggle-password-btn" id="togglePasswordBtn" title="Toggle password visibility">
+                    <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <svg id="eyeSlashIcon" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                </button>
+            </div>
         </div>
 
         <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 0.95rem;">
             🔐 Secure Sign In
         </button>
     </form>
-
-    <!-- 1-Click Role Switcher for Testing 9 Specified Roles -->
-    <div style="margin-top: 1.5rem;">
-        <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">
-            ⚡ 1-Click Instant Demo Login (PDF Roles)
-        </div>
-        <form method="POST" action="<?= $baseURL ?>/login" class="role-switch-grid">
-            <button type="submit" name="quick_role" value="super_admin" class="btn-role-quick">
-                <span>👑</span>
-                <span>Super Admin</span>
-            </button>
-            <button type="submit" name="quick_role" value="pharmacy_admin" class="btn-role-quick">
-                <span>🏢</span>
-                <span>Admin</span>
-            </button>
-            <button type="submit" name="quick_role" value="pharmacist" class="btn-role-quick">
-                <span>💊</span>
-                <span>Pharmacist</span>
-            </button>
-            <button type="submit" name="quick_role" value="store_manager" class="btn-role-quick">
-                <span>📦</span>
-                <span>Store Mgr</span>
-            </button>
-            <button type="submit" name="quick_role" value="purchase_manager" class="btn-role-quick">
-                <span>📋</span>
-                <span>Purchase Mgr</span>
-            </button>
-            <button type="submit" name="quick_role" value="billing_executive" class="btn-role-quick">
-                <span>🧾</span>
-                <span>Billing Exec</span>
-            </button>
-            <button type="submit" name="quick_role" value="cashier" class="btn-role-quick">
-                <span>💵</span>
-                <span>Cashier</span>
-            </button>
-            <button type="submit" name="quick_role" value="accountant" class="btn-role-quick">
-                <span>⚖️</span>
-                <span>Accountant</span>
-            </button>
-            <button type="submit" name="quick_role" value="sales_staff" class="btn-role-quick">
-                <span>👥</span>
-                <span>Sales Staff</span>
-            </button>
-        </form>
-    </div>
 </div>
+
+<script>
+    // Password visibility toggle
+    const toggleBtn = document.getElementById('togglePasswordBtn');
+    const pwdInput = document.getElementById('password');
+    const eyeIcon = document.getElementById('eyeIcon');
+    const eyeSlashIcon = document.getElementById('eyeSlashIcon');
+
+    if (toggleBtn && pwdInput) {
+        toggleBtn.addEventListener('click', function () {
+            const isPassword = pwdInput.type === 'password';
+            pwdInput.type = isPassword ? 'text' : 'password';
+            eyeIcon.style.display = isPassword ? 'none' : 'block';
+            eyeSlashIcon.style.display = isPassword ? 'block' : 'none';
+        });
+    }
+</script>
 
 </body>
 </html>

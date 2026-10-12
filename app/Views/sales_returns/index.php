@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Sales Return Management & Credit Notes (Module 19)</h1>
+        <h1>Sales Return Management & Credit Notes</h1>
         <p>Customer medicine returns, automated stock reinstatement to batches, and refund issuance.</p>
     </div>
 </div>

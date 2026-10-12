@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Accounts Receivable & Payable (Module 26)</h1>
+        <h1>Accounts Receivable & Payable</h1>
         <p>Monitor patient credit balances and supplier procurement invoices with instant settlement tracking.</p>
     </div>
 </div>

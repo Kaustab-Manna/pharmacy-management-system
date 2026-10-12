@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>WhatsApp / SMS / Email Integration (Module 30)</h1>
+        <h1>WhatsApp / SMS / Email Integration</h1>
         <p>Direct communication channels: digital WhatsApp invoices, refill reminders, payment notices & SMS gateway.</p>
     </div>
 </div>

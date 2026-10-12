@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Patient & Customer Management (Module 11)</h1>
+        <h1>Patient & Customer Management</h1>
         <p>Patient medical profiles, known drug allergies, loyalty tiers, lifetime spend, and ledger balances.</p>
     </div>
     <div class="page-actions">

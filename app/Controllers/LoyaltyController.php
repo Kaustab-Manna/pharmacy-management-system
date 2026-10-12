@@ -16,7 +16,7 @@ class LoyaltyController extends Controller
         $logs = Database::raw("SELECT ll.*, p.name as patient_name FROM loyalty_logs ll JOIN patients p ON ll.patient_id = p.id ORDER BY ll.created_at DESC LIMIT 25");
 
         $this->render('loyalty.index', [
-            'pageTitle'    => 'Pharmacy Loyalty & Coupon Management (Module 28) - INFOSOF',
+            'pageTitle'    => 'Pharmacy Loyalty & Coupon Management - INFOSOF',
             'activeModule' => 'loyalty',
             'coupons'      => $coupons,
             'patients'     => $patients,

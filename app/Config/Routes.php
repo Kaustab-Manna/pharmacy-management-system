@@ -43,9 +43,14 @@ use App\Controllers\UsersController;
 use App\Controllers\SettingsController;
 use App\Config\App;
 
-// Root Redirect
+// Root Redirect: Send authenticated users to dashboard, unauthenticated users directly to login
 $router->get('/', function() {
-    header('Location: ' . App::baseURL() . '/dashboard');
+    \App\Core\Session::start();
+    if (\App\Core\Session::has('user_id')) {
+        header('Location: ' . App::baseURL() . '/dashboard');
+    } else {
+        header('Location: ' . App::baseURL() . '/login');
+    }
     exit;
 });
 
@@ -214,6 +219,10 @@ $router->post('/documents/upload', 'DocumentsController@upload');
 
 // Module 35: Audit Trail & Activity Logs
 $router->get('/audit', 'AuditController@index');
+$router->get('/audit/delete/(:num)', 'AuditController@delete');
+$router->post('/audit/delete/(:num)', 'AuditController@delete');
+$router->get('/audit/clear', 'AuditController@clearAll');
+$router->post('/audit/clear', 'AuditController@clearAll');
 
 // Module 36: Security, Backup & Access Control
 $router->get('/security', 'SecurityController@index');

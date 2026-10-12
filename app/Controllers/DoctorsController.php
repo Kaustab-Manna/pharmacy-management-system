@@ -18,7 +18,7 @@ class DoctorsController extends Controller
                                  ORDER BY d.name ASC");
 
         $this->render('doctors.index', [
-            'pageTitle'    => 'Doctor Management & Prescriber Directory (Module 10) - INFOSOF',
+            'pageTitle'    => 'Doctor Management & Prescriber Directory - INFOSOF',
             'activeModule' => 'doctors',
             'doctors'      => $doctors
         ]);

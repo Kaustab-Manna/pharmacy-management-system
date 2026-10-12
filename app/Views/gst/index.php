@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>GST & Tax Compliance Management (Module 24)</h1>
+        <h1>GST & Tax Compliance Management</h1>
         <p>GSTR-1 Outward Supply (Sales), GSTR-2 Input Tax Credit (ITC), and HSN item summaries.</p>
     </div>
     <div class="page-actions">

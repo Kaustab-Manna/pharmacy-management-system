@@ -87,7 +87,7 @@ class SecurityController extends Controller
         $hasCustomConfig = !empty($dbPerms);
 
         $this->render('security.index', [
-            'pageTitle'       => 'Security & Role-Based Access Control (Module 36) - INFOSOF',
+            'pageTitle'       => 'Security & Role-Based Access Control - INFOSOF',
             'activeModule'    => 'security',
             'roles'           => $this->roles,
             'selectedRole'    => $selectedRole,

@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Prescription-Based Billing (Module 13)</h1>
+        <h1>Prescription-Based Billing</h1>
         <p>Seamlessly bridge verified doctor prescriptions directly to billing with FEFO stock allocation.</p>
     </div>
 </div>

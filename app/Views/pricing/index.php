@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Medicine Pricing Management (Module 23)</h1>
+        <h1>Medicine Pricing Management</h1>
         <p>Batch-wise pricing tiers: Cost Price, Maximum Retail Price (MRP), Retail Selling Price, and Wholesale Price.</p>
     </div>
 </div>

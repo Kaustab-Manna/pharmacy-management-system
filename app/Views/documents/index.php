@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Central Document & License Archive (Module 34)</h1>
+        <h1>Central Document & License Archive</h1>
         <p>Safely archive prescription scans, drug licenses (20B/21B), supplier contracts, and regulatory certificates.</p>
     </div>
     <div class="page-actions">

@@ -20,7 +20,7 @@ class PricingController extends Controller
         $coupons = Database::table('loyalty_coupons')->orderBy('is_active', 'DESC')->get();
 
         $this->render('pricing.index', [
-            'pageTitle'    => 'Medicine Pricing Management (Module 23) - INFOSOF',
+            'pageTitle'    => 'Medicine Pricing Management - INFOSOF',
             'activeModule' => 'pricing',
             'pricingList'  => $pricingList,
             'coupons'      => $coupons

@@ -32,12 +32,37 @@ class AuditController extends Controller
         $users = Database::table('users')->get();
 
         $this->render('audit.index', [
-            'pageTitle'    => 'Audit Trail & Compliance Activity Logs (Module 35) - INFOSOF',
+            'pageTitle'    => 'Audit Trail & Compliance Activity Logs - INFOSOF',
             'activeModule' => 'audit',
             'logs'         => $logs,
             'users'        => $users,
             'moduleFilter' => $module,
             'userFilter'   => $userFilter
         ]);
+    }
+
+    public function delete(int|string $id): void
+    {
+        $this->requireAuth();
+        $this->checkPermission('audit', 'delete');
+
+        $id = (int)$id;
+        $exists = Database::raw("SELECT id FROM audit_logs WHERE id = ?", [$id]);
+        if (!empty($exists)) {
+            Database::execute("DELETE FROM audit_logs WHERE id = ?", [$id]);
+            $this->redirect(App::baseURL() . '/audit', 'success', "Audit log entry #{$id} was successfully deleted.");
+        } else {
+            $this->redirect(App::baseURL() . '/audit', 'error', "Audit log entry #{$id} not found.");
+        }
+    }
+
+    public function clearAll(): void
+    {
+        $this->requireAuth();
+        $this->checkPermission('audit', 'delete');
+
+        $count = (int)Database::table('audit_logs')->count();
+        Database::raw("DELETE FROM audit_logs");
+        $this->redirect(App::baseURL() . '/audit', 'success', "Successfully deleted all {$count} audit log records.");
     }
 }

@@ -24,7 +24,7 @@ class DocumentsController extends Controller
         $documents = Database::raw($query, $params);
 
         $this->render('documents.index', [
-            'pageTitle'    => 'Central Document & Certificate Archive (Module 34) - INFOSOF',
+            'pageTitle'    => 'Central Document & Certificate Archive - INFOSOF',
             'activeModule' => 'documents',
             'documents'    => $documents,
             'category'     => $category

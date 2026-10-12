@@ -38,7 +38,7 @@ class PrescriptionBillingController extends Controller
         }
 
         $this->render('prescriptions.billing', [
-            'pageTitle'           => 'Prescription-Based Billing (Module 13) - INFOSOF',
+            'pageTitle'           => 'Prescription-Based Billing - INFOSOF',
             'activeModule'        => 'prescription_billing',
             'patients'            => $patients,
             'patientId'           => $patientId,

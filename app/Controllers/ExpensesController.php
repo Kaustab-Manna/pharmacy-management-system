@@ -22,7 +22,7 @@ class ExpensesController extends Controller
         $totalExpenses = Database::raw("SELECT COALESCE(SUM(amount), 0) as total FROM expenses")[0]['total'];
 
         $this->render('expenses.index', [
-            'pageTitle'         => 'Pharmacy Expense Tracker (Module 27) - INFOSOF',
+            'pageTitle'         => 'Pharmacy Expense Tracker - INFOSOF',
             'activeModule'      => 'expenses',
             'expenses'          => $expenses,
             'categoryBreakdown' => $categoryBreakdown,

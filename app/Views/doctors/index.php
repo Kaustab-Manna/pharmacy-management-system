@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Doctor Management (Module 10)</h1>
+        <h1>Doctor Management</h1>
         <p>Medical council registrations, medical specialties, hospital clinics, and prescriber referral analytics.</p>
     </div>
     <div class="page-actions">

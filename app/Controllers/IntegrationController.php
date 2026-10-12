@@ -15,7 +15,7 @@ class IntegrationController extends Controller
         $duePatients = Database::raw("SELECT * FROM patients WHERE outstanding_balance > 0 ORDER BY outstanding_balance DESC LIMIT 15");
 
         $this->render('integration.index', [
-            'pageTitle'    => 'WhatsApp / SMS / Email Gateway (Module 30) - INFOSOF',
+            'pageTitle'    => 'WhatsApp / SMS / Email Gateway - INFOSOF',
             'activeModule' => 'integration',
             'recentSales'  => $recentSales,
             'duePatients'  => $duePatients

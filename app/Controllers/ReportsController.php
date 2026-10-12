@@ -96,7 +96,7 @@ class ReportsController extends Controller
         }
 
         $this->render('reports.index', [
-            'pageTitle'    => 'Reports & Business Analytics (Module 33) - INFOSOF',
+            'pageTitle'    => 'Reports & Business Analytics - INFOSOF',
             'activeModule' => 'reports',
             'reportType'   => $reportType,
             'dateFrom'     => $dateFrom,

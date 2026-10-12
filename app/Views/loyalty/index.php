@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Loyalty & Rewards Management (Module 28)</h1>
+        <h1>Loyalty & Rewards Management</h1>
         <p>Customer retention tiers (Bronze, Silver, Gold, Platinum), points accumulation, and discount coupons.</p>
     </div>
     <div class="page-actions">

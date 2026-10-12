@@ -14,7 +14,7 @@ class NotificationsController extends Controller
         $notifications = Database::table('notifications')->orderBy('id', 'DESC')->get();
 
         $this->render('notifications.index', [
-            'pageTitle'     => 'Notifications & Real-Time Alerts (Module 29) - INFOSOF',
+            'pageTitle'     => 'Notifications & Real-Time Alerts - INFOSOF',
             'activeModule'  => 'notifications',
             'notifications' => $notifications
         ]);

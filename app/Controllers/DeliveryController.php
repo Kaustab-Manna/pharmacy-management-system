@@ -14,7 +14,7 @@ class DeliveryController extends Controller
         $deliveries = Database::table('deliveries')->orderBy('id', 'DESC')->get();
 
         $this->render('delivery.index', [
-            'pageTitle'    => 'Home Delivery & Dispatch Desk (Module 32) - INFOSOF',
+            'pageTitle'    => 'Home Delivery & Dispatch Desk - INFOSOF',
             'activeModule' => 'delivery',
             'deliveries'   => $deliveries
         ]);

@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Inventory & Real-Time Stock Management (Module 20)</h1>
+        <h1>Inventory & Real-Time Stock Management</h1>
         <p>Comprehensive overview of warehouse stock, valuations at Cost & MRP, and real-time movement ledgers.</p>
     </div>
     <div class="page-actions">

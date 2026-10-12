@@ -37,7 +37,7 @@ class FefoController extends Controller
                                           ORDER BY s.sale_date DESC LIMIT 15");
 
         $this->render('inventory.fefo', [
-            'pageTitle'        => 'FEFO / FIFO Engine & Compliance (Module 22) - INFOSOF',
+            'pageTitle'        => 'FEFO / FIFO Engine & Compliance - INFOSOF',
             'activeModule'     => 'fefo',
             'fefoAudit'        => $fefoAudit,
             'fefoBatches'      => $fefoBatches,

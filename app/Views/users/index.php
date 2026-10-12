@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>User & Role Management (Module 1)</h1>
+        <h1>User & Role Management</h1>
         <p>Manage staff accounts, assign granular role permissions, and monitor last activity logins.</p>
     </div>
     <div class="page-actions">

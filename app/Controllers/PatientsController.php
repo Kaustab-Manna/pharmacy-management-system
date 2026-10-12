@@ -29,7 +29,7 @@ class PatientsController extends Controller
         $patients = Database::raw($query, $params);
 
         $this->render('patients.index', [
-            'pageTitle'    => 'Patient & Customer Management (Module 11) - INFOSOF',
+            'pageTitle'    => 'Patient & Customer Management - INFOSOF',
             'activeModule' => 'patients',
             'patients'     => $patients,
             'search'       => $search

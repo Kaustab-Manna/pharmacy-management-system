@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Suppliers & Distributors Management (Module 9)</h1>
+        <h1>Suppliers & Distributors Management</h1>
         <p>Maintain pharmaceutical distributor profiles, GST & drug licenses, outstanding dues, and ledger records.</p>
     </div>
     <div class="page-actions">

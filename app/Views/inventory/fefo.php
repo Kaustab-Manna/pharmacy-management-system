@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>FEFO / FIFO Stock Management (Module 22)</h1>
+        <h1>FEFO / FIFO Stock Management</h1>
         <p>First Expiry, First Out algorithm prioritization to minimize pharmaceutical write-off losses.</p>
     </div>
     <div class="page-actions">

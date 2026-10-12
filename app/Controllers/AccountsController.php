@@ -29,7 +29,7 @@ class AccountsController extends Controller
         $totalPayables = Database::raw("SELECT COALESCE(SUM(current_balance), 0) as total FROM suppliers")[0]['total'];
 
         $this->render('accounts.index', [
-            'pageTitle'        => 'Accounts Receivable & Payable (Module 26) - INFOSOF',
+            'pageTitle'        => 'Accounts Receivable & Payable - INFOSOF',
             'activeModule'     => 'accounts',
             'receivables'      => $receivables,
             'payables'         => $payables,

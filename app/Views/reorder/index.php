@@ -1,6 +1,6 @@
 <div class="page-header">
     <div class="page-title">
-        <h1>Smart Reorder Management (Module 21)</h1>
+        <h1>Smart Reorder Management</h1>
         <p>AI-driven predictive stock replenishment calculating sales velocity, lead times, and suggested purchase quantities.</p>
     </div>
     <div class="page-actions">

@@ -69,7 +69,7 @@ class ReorderController extends Controller
         $suppliers = Database::table('suppliers')->where('is_active', 1)->get();
 
         $this->render('reorder.index', [
-            'pageTitle'    => 'Smart Reorder Management (Module 21) - INFOSOF',
+            'pageTitle'    => 'Smart Reorder Management - INFOSOF',
             'activeModule' => 'reorder',
             'reorderList'  => $reorderList,
             'suppliers'    => $suppliers

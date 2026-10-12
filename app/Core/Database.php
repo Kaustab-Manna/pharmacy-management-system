@@ -191,8 +191,8 @@ class Database
                     $stmt = $pdo->prepare($insertSql);
                     $stmt->execute([$username, $email, $hash, $fullName, $role]);
                 } else {
-                    // If existing user's password hash does not verify with admin123, update it to ensure admin123 works
-                    if (!password_verify('admin123', $existing['password'])) {
+                    // If existing user has no password or invalid password hash, set default hash
+                    if (empty($existing['password']) || !password_get_info($existing['password'])['algo']) {
                         $upd = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
                         $upd->execute([$hash, $existing['id']]);
                     }
